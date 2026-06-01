@@ -84,7 +84,7 @@ fun ListingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("CarFinder") },
+                title = { Text("CarGate") },
                 actions = {
                     CurrencyMenu(
                         selected = uiState.displayCurrency,

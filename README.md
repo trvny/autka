@@ -1,8 +1,13 @@
-# CarFinder
+# CarGate
 
 An Android app that aggregates used-car offers from multiple marketplaces across
 **Poland, the rest of Europe, and US import sources** into one searchable list, with
 landed-cost estimation for vehicles imported from the USA.
+
+> Formerly **CarFinder**. CarFinder is retained as a secondary brand: a launchable
+> Android `activity-alias` (label "CarFinder") and the internal code identity
+> (package `com.carfinder`, `CarFinder*` classes). Only the user-facing name and the
+> Gradle project name changed to CarGate.
 
 ## Status
 

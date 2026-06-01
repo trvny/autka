@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">CarFinder</string>
+    <string name="app_name">CarGate</string>
+    <!-- Secondary brand kept as a launcher alias label -->
+    <string name="app_name_alias">CarFinder</string>
 </resources>
