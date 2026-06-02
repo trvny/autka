@@ -1,0 +1,50 @@
+# Keeps dependencies current automatically. Dependabot opens PRs that the
+# Android CI workflow then builds/tests, so you review a green check, not a diff.
+# Docs: https://docs.github.com/en/code-security/dependabot
+version: 2
+updates:
+  # --- Gradle / Kotlin dependencies (reads gradle/libs.versions.toml) ---
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Warsaw"
+    open-pull-requests-limit: 10
+    rebase-strategy: "disabled"
+    commit-message:
+      prefix: "deps"
+    groups:
+      # Roll all AndroidX/Compose/Jetpack bumps into one PR.
+      androidx:
+        patterns:
+          - "androidx.*"
+      # Keep the two Kotlin-version-locked toolchain plugins together; bumping
+      # one without the others usually breaks the build.
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "com.google.devtools.ksp*"
+      # Everything else (Hilt, Room, Retrofit, OkHttp, Coil, coroutines, ...)
+      # grouped so minor/patch bumps arrive as a single reviewable PR.
+      misc-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # --- GitHub Actions used in workflows ---
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Warsaw"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
