@@ -79,6 +79,8 @@ launch from the **NBP (Narodowy Bank Polski) public API** via `NbpRateProvider` 
 keyless, and not part of the deferred aggregation backend. A failed fetch silently keeps
 the last good rates.
 
+The chosen display currency is persisted app-wide via Preferences DataStore (`SettingsRepository`), so it survives restarts and is shared across the listings and detail screens. The detail screen shows the converted price and the converted import landed-cost total alongside the originals.
+
 ## Build & run
 
 Requires Android Studio (Ladybug or newer) and JDK 17.
@@ -108,8 +110,6 @@ compileSdk 35, minSdk 26. Bump via the version catalog at `gradle/libs.versions.
 ## Next steps
 
 - Stand up the aggregation backend and point the stub adapters at it.
-- Persist the chosen display currency app-wide via DataStore so the detail screen and
-  app restarts honor it (currently the display currency lives in the listings screen).
 - Cache fetched exchange rates across restarts (currently re-fetched each launch).
 - Make US import shipping/engine-capacity inputs editable in the detail screen.
 - Tests: repository merge/failure-isolation, import calculator, mapper round-trips,

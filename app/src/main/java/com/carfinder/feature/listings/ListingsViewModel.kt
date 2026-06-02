@@ -6,6 +6,7 @@ import com.carfinder.core.model.Currency
 import com.carfinder.core.model.SearchFilter
 import com.carfinder.data.repository.CarOfferRepository
 import com.carfinder.data.repository.ExchangeRateRepository
+import com.carfinder.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,19 +20,20 @@ import javax.inject.Inject
 class ListingsViewModel @Inject constructor(
     private val repository: CarOfferRepository,
     private val rateRepository: ExchangeRateRepository,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val filter = MutableStateFlow(SearchFilter())
-    private val displayCurrency = MutableStateFlow(Currency.PLN)
     private val transient = MutableStateFlow(TransientState())
 
+    // displayCurrency now comes from persisted settings rather than local state.
     val uiState: StateFlow<ListingsUiState> =
         combine(
             repository.observeOffers(),
             filter,
             transient,
             rateRepository.rates(),
-            displayCurrency,
+            settingsRepository.displayCurrency,
         ) { offers, f, t, rates, currency ->
             ListingsUiState(
                 isRefreshing = t.isRefreshing,
@@ -71,7 +73,7 @@ class ListingsViewModel @Inject constructor(
     }
 
     fun onDisplayCurrencyChange(currency: Currency) {
-        displayCurrency.value = currency
+        viewModelScope.launch { settingsRepository.setDisplayCurrency(currency) }
     }
 
     fun refresh() {

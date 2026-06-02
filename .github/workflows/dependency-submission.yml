@@ -1,0 +1,50 @@
+name: Dependency Submission
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write        # required to submit the dependency graph
+
+jobs:
+  # On push to main: resolve the full Gradle dependency graph (including transitive
+  # deps) and submit it to GitHub. This is what lets Dependabot security alerts work
+  # for Gradle, which it otherwise can't fully do from the version catalog alone.
+  dependency-submission:
+    name: Submit dependency graph
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generate and submit dependency graph
+        uses: gradle/actions/dependency-submission@v6
+
+  # On pull requests: compare the PR's dependencies against the base and fail if a PR
+  # introduces a known-vulnerable dependency, before it's merged.
+  dependency-review:
+    name: Review PR dependencies
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          comment-summary-in-pr: on-failure

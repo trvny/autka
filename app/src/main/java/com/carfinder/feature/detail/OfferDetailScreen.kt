@@ -26,6 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.carfinder.core.model.Currency
+import com.carfinder.core.model.ExchangeRates
 import com.carfinder.core.model.ImportCostEstimate
 import com.carfinder.ui.components.EmptyState
 import com.carfinder.ui.components.LoadingIndicator
@@ -66,13 +68,27 @@ fun OfferDetailScreen(uiState: OfferDetailUiState, onBack: () -> Unit) {
                 val o = uiState.offer
                 Text(o.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(o.price.formatted(), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                val rates = uiState.exchangeRates
+                if (rates != null && o.price.currency != uiState.displayCurrency) {
+                    Text(
+                        "~ ${rates.convert(o.price, uiState.displayCurrency).formatted()}",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 SpecRow("Year", o.year?.toString() ?: "--")
                 SpecRow("Mileage", o.mileageKm.kmOrDash())
                 SpecRow("Fuel", o.fuelType.name)
                 SpecRow("Transmission", o.transmission.name)
                 SpecRow("Power", o.powerHp?.let { "$it hp" } ?: "--")
                 SpecRow("Location", o.location ?: "--")
-                uiState.importEstimate?.let { ImportBreakdown(it) }
+                uiState.importEstimate?.let {
+                    ImportBreakdown(
+                        est = it,
+                        displayCurrency = uiState.displayCurrency,
+                        rates = uiState.exchangeRates,
+                    )
+                }
             }
         }
     }
@@ -87,7 +103,11 @@ private fun SpecRow(label: String, value: String) {
 }
 
 @Composable
-private fun ImportBreakdown(est: ImportCostEstimate) {
+private fun ImportBreakdown(
+    est: ImportCostEstimate,
+    displayCurrency: Currency,
+    rates: ExchangeRates?,
+) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Estimated import to Poland", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -98,6 +118,9 @@ private fun ImportBreakdown(est: ImportCostEstimate) {
             SpecRow("VAT (23%)", est.vat.formatted())
             Divider()
             SpecRow("Total landed", est.total.formatted())
+            if (rates != null && est.total.currency != displayCurrency) {
+                SpecRow("Total landed (${displayCurrency.name})", rates.convert(est.total, displayCurrency).formatted())
+            }
             Text(
                 "Estimate only -- actual customs valuation, rates and fees vary.",
                 style = MaterialTheme.typography.bodySmall,

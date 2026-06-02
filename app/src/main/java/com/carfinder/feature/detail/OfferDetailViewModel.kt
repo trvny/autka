@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.carfinder.core.model.ImportCostCalculator
 import com.carfinder.core.model.Region
 import com.carfinder.data.repository.CarOfferRepository
+import com.carfinder.data.repository.ExchangeRateRepository
+import com.carfinder.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
@@ -17,6 +19,8 @@ import javax.inject.Inject
 class OfferDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     repository: CarOfferRepository,
+    rateRepository: ExchangeRateRepository,
+    settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val offerId: String = checkNotNull(savedStateHandle["offerId"])
@@ -25,7 +29,11 @@ class OfferDetailViewModel @Inject constructor(
     private val defaultUsShippingUsd = 2_400.0
 
     val uiState: StateFlow<OfferDetailUiState> =
-        repository.observeOffer(offerId).map { offer ->
+        combine(
+            repository.observeOffer(offerId),
+            rateRepository.rates(),
+            settingsRepository.displayCurrency,
+        ) { offer, rates, currency ->
             when {
                 offer == null -> OfferDetailUiState.NotFound
                 offer.region == Region.USA -> OfferDetailUiState.Success(
@@ -35,8 +43,15 @@ class OfferDetailViewModel @Inject constructor(
                         shippingUsd = defaultUsShippingUsd,
                         engineCapacityCc = null,
                     ),
+                    displayCurrency = currency,
+                    exchangeRates = rates,
                 )
-                else -> OfferDetailUiState.Success(offer, importEstimate = null)
+                else -> OfferDetailUiState.Success(
+                    offer = offer,
+                    importEstimate = null,
+                    displayCurrency = currency,
+                    exchangeRates = rates,
+                )
             }
         }.stateIn(
             scope = viewModelScope,
