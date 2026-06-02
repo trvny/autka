@@ -73,4 +73,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.coil.compose)
+
+    implementation(libs.androidx.datastore.preferences)
 }
