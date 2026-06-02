@@ -92,10 +92,13 @@ Or open the folder in Android Studio and hit Run. First sync downloads dependenc
 
 ## Continuous integration
 
-`.github/workflows/android-ci.yml` runs on every push and PR to `main`: validates the
-Gradle wrapper checksum, sets up JDK 17, then runs `lintDebug assembleDebug
-testDebugUnitTest`. The debug APK and lint report are uploaded as build artifacts.
-(There are no unit tests yet, so the test step is a no-op until you add them.)
+`.github/workflows/android-ci.yml` runs on every push and PR to `main`: sets up JDK 17
+and Gradle (which validates the wrapper-jar checksum automatically and caches builds),
+then runs `lintDebug assembleDebug testDebugUnitTest`. The debug APK and lint report are
+uploaded as build artifacts. (There are no unit tests yet, so the test step is a no-op
+until you add them.)
+
+`.github/dependabot.yml` opens weekly PRs for both Gradle/Kotlin dependencies (via the version catalog) and the workflow's GitHub Actions, grouped so related bumps arrive together. CI builds each PR, so you review a green check rather than re-auditing versions by hand.
 
 ## Versions
 
