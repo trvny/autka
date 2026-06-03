@@ -1,5 +1,7 @@
 package com.carfinder.feature.listings
 
+import androidx.compose.ui.res.stringResource
+import com.carfinder.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,11 +10,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Badge
@@ -35,6 +40,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -47,6 +53,7 @@ import com.carfinder.core.model.ExchangeRates
 import com.carfinder.core.model.Region
 import com.carfinder.core.model.SearchFilter
 import com.carfinder.ui.components.EmptyState
+import com.carfinder.ui.components.OfferImage
 import com.carfinder.ui.components.LoadingIndicator
 import com.carfinder.ui.components.formatted
 import com.carfinder.ui.components.kmOrDash
@@ -54,6 +61,7 @@ import com.carfinder.ui.components.kmOrDash
 @Composable
 fun ListingsRoute(
     onOfferClick: (String) -> Unit,
+    onMapClick: () -> Unit,
     viewModel: ListingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -65,6 +73,7 @@ fun ListingsRoute(
         onResetFilter = viewModel::onResetFilter,
         onDisplayCurrencyChange = viewModel::onDisplayCurrencyChange,
         onOfferClick = onOfferClick,
+        onMapClick = onMapClick,
     )
 }
 
@@ -78,18 +87,22 @@ fun ListingsScreen(
     onResetFilter: () -> Unit,
     onDisplayCurrencyChange: (Currency) -> Unit,
     onOfferClick: (String) -> Unit,
+    onMapClick: () -> Unit,
 ) {
     var showFilters by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("CarGate") },
+                title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     CurrencyMenu(
                         selected = uiState.displayCurrency,
                         onSelect = onDisplayCurrencyChange,
                     )
+                    IconButton(onClick = onMapClick) {
+                        Icon(Icons.Default.Map, contentDescription = stringResource(R.string.cd_map))
+                    }
                     IconButton(onClick = { showFilters = true }) {
                         BadgedBox(
                             badge = {
@@ -98,7 +111,7 @@ fun ListingsScreen(
                                 }
                             },
                         ) {
-                            Icon(Icons.Default.Tune, contentDescription = "Filters")
+                            Icon(Icons.Default.Tune, contentDescription = stringResource(R.string.cd_filters))
                         }
                     }
                 },
@@ -110,7 +123,7 @@ fun ListingsScreen(
                 value = uiState.filter.query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
-                label = { Text("Search make, model...") },
+                label = { Text(stringResource(R.string.search_hint)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -137,8 +150,8 @@ fun ListingsScreen(
             when {
                 uiState.isRefreshing && uiState.offers.isEmpty() -> LoadingIndicator()
                 uiState.offers.isEmpty() -> EmptyState(
-                    if (uiState.activeFilterCount > 0) "No offers match these filters."
-                    else "No offers yet. Pull a search to begin.",
+                    if (uiState.activeFilterCount > 0) stringResource(R.string.empty_no_match)
+                    else stringResource(R.string.empty_no_offers),
                 )
                 else -> LazyColumn(
                     contentPadding = PaddingValues(16.dp),
@@ -194,29 +207,42 @@ private fun OfferCard(
     onClick: () -> Unit,
 ) {
     Card(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(offer.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(offer.price.formatted(), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-                if (rates != null && offer.price.currency != displayCurrency) {
+        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OfferImage(
+                url = offer.thumbnailUrl,
+                modifier = Modifier.size(96.dp).clip(RoundedCornerShape(8.dp)),
+            )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(offer.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(offer.price.formatted(), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                    if (rates != null && offer.price.currency != displayCurrency) {
+                        Text(
+                            "~ ${rates.convert(offer.price, displayCurrency).formatted()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Text("${offer.year ?: "--"} | ${offer.mileageKm.kmOrDash()}", style = MaterialTheme.typography.bodySmall)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(offer.location ?: "--", style = MaterialTheme.typography.bodySmall)
+                    RegionBadge(offer.region)
+                }
+                offer.listingCount?.takeIf { it > 1 }?.let {
                     Text(
-                        "~ ${rates.convert(offer.price, displayCurrency).formatted()}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        stringResource(R.string.listed_on_sites, it),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary,
                     )
                 }
-            }
-            Text("${offer.year ?: "--"} | ${offer.mileageKm.kmOrDash()}", style = MaterialTheme.typography.bodySmall)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(offer.location ?: "--", style = MaterialTheme.typography.bodySmall)
-                RegionBadge(offer.region)
-            }
-            offer.importEstimate?.let {
-                Text(
-                    "Est. landed cost: ${it.total.formatted()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
+                offer.importEstimate?.let {
+                    Text(
+                        "Est. landed cost: ${it.total.formatted()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
     }

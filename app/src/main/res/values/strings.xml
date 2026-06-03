@@ -2,4 +2,77 @@
     <string name="app_name">CarGate</string>
     <!-- Secondary brand kept as a launcher alias label -->
     <string name="app_name_alias">CarFinder</string>
+
+    <!-- Listings -->
+    <string name="search_hint">Search make, model…</string>
+    <string name="cd_filters">Filters</string>
+    <string name="retry">Retry</string>
+    <string name="empty_no_match">No offers match these filters.</string>
+    <string name="empty_no_offers">No offers yet. Pull a search to begin.</string>
+    <string name="listed_on_sites">Listed on %1$d sites</string>
+
+    <!-- Detail -->
+    <string name="offer">Offer</string>
+    <string name="cd_back">Back</string>
+    <string name="offer_unavailable">Offer no longer available.</string>
+    <string name="spec_year">Year</string>
+    <string name="spec_mileage">Mileage</string>
+    <string name="spec_fuel">Fuel</string>
+    <string name="spec_transmission">Transmission</string>
+    <string name="spec_power">Power</string>
+    <string name="spec_location">Location</string>
+    <string name="import_title">Estimated import to Poland</string>
+    <string name="import_vehicle">Vehicle</string>
+    <string name="import_shipping">Shipping</string>
+    <string name="import_customs">Customs duty</string>
+    <string name="import_excise">Excise (akcyza)</string>
+    <string name="import_vat">VAT (23%)</string>
+    <string name="import_shipping_usd">Shipping (USD)</string>
+    <string name="import_engine_cc">Engine (cc)</string>
+    <string name="import_total">Total landed</string>
+    <string name="import_total_in">Total landed (%1$s)</string>
+    <string name="import_disclaimer">Estimate only — actual customs valuation, rates and fees vary.</string>
+
+    <!-- Filters -->
+    <string name="filters">Filters</string>
+    <string name="filter_make">Make</string>
+    <string name="filter_min">Min</string>
+    <string name="filter_max">Max</string>
+    <string name="filter_any">Any</string>
+    <string name="filter_region">Region</string>
+    <string name="filter_all">all</string>
+    <string name="filter_sources">Sources</string>
+    <string name="filter_price_range">Price range (%1$s)</string>
+    <string name="filter_min_year">Min year: %1$s</string>
+    <string name="filter_max_mileage">Max mileage: %1$s</string>
+    <string name="filter_sort_by">Sort by</string>
+    <string name="reset">Reset</string>
+    <string name="apply">Apply</string>
+
+    <!-- Fuel types -->
+    <string name="fuel_petrol">Petrol</string>
+    <string name="fuel_diesel">Diesel</string>
+    <string name="fuel_hybrid">Hybrid</string>
+    <string name="fuel_plugin">Plug-in</string>
+    <string name="fuel_electric">Electric</string>
+    <string name="fuel_lpg">LPG</string>
+    <string name="fuel_other">Other</string>
+    <string name="fuel_unknown">Unknown</string>
+
+    <!-- Regions -->
+    <string name="region_poland">Poland</string>
+    <string name="region_europe">Europe</string>
+    <string name="region_usa">US import</string>
+
+    <!-- Sort orders -->
+    <string name="sort_newest">Newest</string>
+    <string name="sort_price_up">Price up</string>
+    <string name="sort_price_down">Price down</string>
+    <string name="sort_mileage">Mileage</string>
+    <string name="sort_year">Year</string>
+    <string name="map_title">Map</string>
+    <string name="cd_map">Map</string>
+    <string name="map_no_key">Add MAPS_API_KEY to local.properties to enable the map.</string>
+    <string name="view_listing">View listing</string>
+    <string name="share">Share</string>
 </resources>

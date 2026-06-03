@@ -1,5 +1,7 @@
 package com.carfinder.ui.components
 
+import androidx.compose.ui.res.stringResource
+import com.carfinder.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +29,7 @@ fun ErrorMessage(message: String, onRetry: (() -> Unit)? = null, modifier: Modif
     Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(message, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge)
-            if (onRetry != null) Button(onClick = onRetry) { Text("Retry") }
+            if (onRetry != null) Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
         }
     }
 }

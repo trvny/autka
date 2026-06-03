@@ -51,6 +51,10 @@ data class OfferDto(
     val imageUrls: List<String> = emptyList(),
     val listingUrl: String,
     val postedAtEpochMs: Long? = null,
+    val listingCount: Int? = null,
+    val otherSources: List<String> = emptyList(),
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 @Serializable

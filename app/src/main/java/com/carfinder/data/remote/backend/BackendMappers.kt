@@ -19,4 +19,6 @@ fun OfferDto.toModel(): CarOffer = CarOffer(
     thumbnailUrl = thumbnailUrl, imageUrls = imageUrls,
     listingUrl = listingUrl, postedAtEpochMs = postedAtEpochMs,
     importEstimate = null, // recomputed on demand in the detail view
+    listingCount = listingCount,
+    latitude = latitude, longitude = longitude,
 )

@@ -21,6 +21,7 @@ isolates failures, and upserts results into D1. The app then talks to one endpoi
 | GET    | `/offers/:id`   | Single offer |
 | GET    | `/sources`      | Source list + enabled flags (for app UI toggles) |
 | POST   | `/admin/ingest` | Manually trigger ingestion; `Authorization: Bearer <ADMIN_TOKEN>` |
+| GET    | `/images/<key>` | Serve an offer image from R2 (streamed, cached, ETag/304) |
 
 `/offers` returns `{ offers: CarOffer[], count }`. The `CarOffer` shape in
 `src/lib/types.ts` mirrors the Android `com.carfinder.core.model.CarOffer` — keep them
@@ -69,6 +70,18 @@ printed `https://cargate-backend.<your-subdomain>.workers.dev/` URL.
 zero config. `stubs.ts` holds the disabled real connectors (Otomoto, OLX, Facebook,
 US auctions), each documenting the compliant data path required before enabling. The
 legal acquisition route, not the code, is the hard part — see comments in `stubs.ts`.
+
+## Images
+
+During ingestion, each offer's images are fetched best-effort and stored in the
+`cargate-images` R2 bucket (`src/ingest/images.ts`), and the offer's URLs are
+rewritten to backend-served `/images/<key>` paths. This gives the app stable,
+CDN-backed image URLs instead of marketplace URLs that may expire or block
+hotlinking. Failures (bad URL, timeout, non-image) are swallowed and the original
+URL kept, so a bad image never breaks ingestion. `GET /images/<key>` streams the
+object straight from R2 (never buffered) with long cache headers and 304 support.
+It is read-only — it never fetches arbitrary URLs on demand, so there is no
+open-proxy / SSRF surface.
 
 ## Notes
 

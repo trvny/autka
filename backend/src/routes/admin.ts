@@ -9,7 +9,7 @@ export const adminRouter = new Hono<{ Bindings: Env }>();
 adminRouter.post("/admin/ingest", async (c) => {
   const auth = c.req.header("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  if (!c.env.ADMIN_TOKEN || !timingSafeEqualStr(token, c.env.ADMIN_TOKEN)) {
+  if (!c.env.ADMIN_TOKEN || !(await timingSafeEqualStr(token, c.env.ADMIN_TOKEN))) {
     return c.json({ error: "unauthorized" }, 401);
   }
   const results = await runIngestion(c.env);

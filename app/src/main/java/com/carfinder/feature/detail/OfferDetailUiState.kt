@@ -12,6 +12,9 @@ sealed interface OfferDetailUiState {
         val importEstimate: ImportCostEstimate?,
         val displayCurrency: Currency,
         val exchangeRates: ExchangeRates?,
+        // Editable import-calculator inputs (relevant when importEstimate != null):
+        val shippingUsd: Double = 0.0,
+        val engineCapacityCc: Int? = null,
     ) : OfferDetailUiState
     data object NotFound : OfferDetailUiState
 }

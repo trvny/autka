@@ -16,8 +16,9 @@ export const mockSource: IngestSource = {
         price: { amount: 78_900, currency: "PLN" },
         fuelType: "DIESEL", transmission: "AUTOMATIC", powerHp: 190,
         location: "Krakow, PL", region: "POLAND",
-        thumbnailUrl: null, imageUrls: [],
+        thumbnailUrl: "https://picsum.photos/seed/mock1/640/480", imageUrls: ["https://picsum.photos/seed/mock1/640/480", "https://picsum.photos/seed/mock1b/640/480"],
         listingUrl: "https://example.com/listing/1", postedAtEpochMs: h(3),
+        latitude: 50.0647, longitude: 19.9450,
       },
       {
         id: "mock:2", sourceId: "mock", title: "Audi A4 2.0 TFSI 2019",
@@ -25,8 +26,9 @@ export const mockSource: IngestSource = {
         price: { amount: 19_500, currency: "EUR" },
         fuelType: "PETROL", transmission: "AUTOMATIC", powerHp: 190,
         location: "Berlin, DE", region: "EUROPE",
-        thumbnailUrl: null, imageUrls: [],
+        thumbnailUrl: "https://picsum.photos/seed/mock2/640/480", imageUrls: ["https://picsum.photos/seed/mock2/640/480", "https://picsum.photos/seed/mock2b/640/480"],
         listingUrl: "https://example.com/listing/2", postedAtEpochMs: h(20),
+        latitude: 52.5200, longitude: 13.4050,
       },
       {
         id: "mock:3", sourceId: "mock", title: "Ford Mustang GT 5.0 2020",
@@ -34,8 +36,9 @@ export const mockSource: IngestSource = {
         price: { amount: 18_000, currency: "USD" },
         fuelType: "PETROL", transmission: "AUTOMATIC", powerHp: 460,
         location: "Newark, NJ, USA", region: "USA",
-        thumbnailUrl: null, imageUrls: [],
+        thumbnailUrl: "https://picsum.photos/seed/mock3/640/480", imageUrls: ["https://picsum.photos/seed/mock3/640/480", "https://picsum.photos/seed/mock3b/640/480"],
         listingUrl: "https://example.com/listing/3", postedAtEpochMs: h(50),
+        latitude: 40.7357, longitude: -74.1724,
       },
     ];
   },

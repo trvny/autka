@@ -9,6 +9,9 @@ export default defineWorkersConfig(async () => {
       poolOptions: {
         workers: {
           singleWorker: true,
+          // R2 streamed bodies trip isolated-storage teardown (known pool issue);
+          // tests are written to be order-independent so this is safe to disable.
+          isolatedStorage: false,
           wrangler: { configPath: "./wrangler.jsonc" },
           miniflare: {
             bindings: { TEST_MIGRATIONS: migrations },

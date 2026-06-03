@@ -8,10 +8,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.carfinder.feature.detail.OfferDetailRoute
 import com.carfinder.feature.listings.ListingsRoute
+import com.carfinder.feature.map.MapRoute
 
 private object Routes {
     const val LISTINGS = "listings"
     const val DETAIL = "detail/{offerId}"
+    const val MAP = "map"
     fun detail(offerId: String) = "detail/$offerId"
 }
 
@@ -22,6 +24,7 @@ fun CarFinderApp() {
         composable(Routes.LISTINGS) {
             ListingsRoute(
                 onOfferClick = { id -> navController.navigate(Routes.detail(id)) },
+                onMapClick = { navController.navigate(Routes.MAP) },
             )
         }
         composable(
@@ -29,6 +32,12 @@ fun CarFinderApp() {
             arguments = listOf(navArgument("offerId") { type = NavType.StringType }),
         ) {
             OfferDetailRoute(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.MAP) {
+            MapRoute(
+                onBack = { navController.popBackStack() },
+                onOfferClick = { id -> navController.navigate(Routes.detail(id)) },
+            )
         }
     }
 }

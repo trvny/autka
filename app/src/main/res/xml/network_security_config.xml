@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Cleartext disabled by default; all source adapters must use HTTPS. -->
+<!--
+  Cleartext is disabled by default; all real source/backend traffic must use HTTPS.
+  The only exceptions are the local dev backend addresses (emulator loopback 10.0.2.2
+  and localhost) so `wrangler dev` over http is reachable from debug builds. Production
+  uses the https workers.dev URL, which the base-config covers.
+-->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
 </network-security-config>

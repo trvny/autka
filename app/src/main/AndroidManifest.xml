@@ -13,6 +13,12 @@
         android:theme="@style/Theme.CarFinder"
         android:networkSecurityConfig="@xml/network_security_config">
 
+        <!-- Google Maps API key, supplied via manifestPlaceholder from local.properties.
+             The map screen degrades to a message when this is empty/unset. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
         <!-- Primary entry: CarGate (inherits the application label) -->
         <activity
             android:name=".MainActivity"

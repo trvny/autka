@@ -1,0 +1,76 @@
+<resources>
+    <!-- app_name / alias are brand names — intentionally not translated -->
+
+    <!-- Listings -->
+    <string name="search_hint">Szukaj marki, modelu…</string>
+    <string name="cd_filters">Filtry</string>
+    <string name="retry">Ponów</string>
+    <string name="empty_no_match">Brak ofert spełniających te filtry.</string>
+    <string name="empty_no_offers">Brak ofert. Rozpocznij wyszukiwanie.</string>
+    <string name="listed_on_sites">Wystawiono w %1$d serwisach</string>
+
+    <!-- Detail -->
+    <string name="offer">Oferta</string>
+    <string name="cd_back">Wstecz</string>
+    <string name="offer_unavailable">Oferta nie jest już dostępna.</string>
+    <string name="spec_year">Rok</string>
+    <string name="spec_mileage">Przebieg</string>
+    <string name="spec_fuel">Paliwo</string>
+    <string name="spec_transmission">Skrzynia biegów</string>
+    <string name="spec_power">Moc</string>
+    <string name="spec_location">Lokalizacja</string>
+    <string name="import_title">Szacowany import do Polski</string>
+    <string name="import_vehicle">Pojazd</string>
+    <string name="import_shipping">Transport</string>
+    <string name="import_customs">Cło</string>
+    <string name="import_excise">Akcyza</string>
+    <string name="import_vat">VAT (23%)</string>
+    <string name="import_shipping_usd">Transport (USD)</string>
+    <string name="import_engine_cc">Pojemność (cm³)</string>
+    <string name="import_total">Koszt całkowity</string>
+    <string name="import_total_in">Koszt całkowity (%1$s)</string>
+    <string name="import_disclaimer">Tylko szacunek — faktyczna wycena celna, stawki i opłaty mogą się różnić.</string>
+
+    <!-- Filters -->
+    <string name="filters">Filtry</string>
+    <string name="filter_make">Marka</string>
+    <string name="filter_min">Min</string>
+    <string name="filter_max">Maks</string>
+    <string name="filter_any">Dowolne</string>
+    <string name="filter_region">Region</string>
+    <string name="filter_all">wszystkie</string>
+    <string name="filter_sources">Źródła</string>
+    <string name="filter_price_range">Cena (%1$s)</string>
+    <string name="filter_min_year">Rok od: %1$s</string>
+    <string name="filter_max_mileage">Maks. przebieg: %1$s</string>
+    <string name="filter_sort_by">Sortuj według</string>
+    <string name="reset">Resetuj</string>
+    <string name="apply">Zastosuj</string>
+
+    <!-- Fuel types -->
+    <string name="fuel_petrol">Benzyna</string>
+    <string name="fuel_diesel">Diesel</string>
+    <string name="fuel_hybrid">Hybryda</string>
+    <string name="fuel_plugin">Hybryda plug-in</string>
+    <string name="fuel_electric">Elektryczny</string>
+    <string name="fuel_lpg">LPG</string>
+    <string name="fuel_other">Inne</string>
+    <string name="fuel_unknown">Nieznane</string>
+
+    <!-- Regions -->
+    <string name="region_poland">Polska</string>
+    <string name="region_europe">Europa</string>
+    <string name="region_usa">Import z USA</string>
+
+    <!-- Sort orders -->
+    <string name="sort_newest">Najnowsze</string>
+    <string name="sort_price_up">Cena rosnąco</string>
+    <string name="sort_price_down">Cena malejąco</string>
+    <string name="sort_mileage">Przebieg</string>
+    <string name="sort_year">Rok</string>
+    <string name="map_title">Mapa</string>
+    <string name="cd_map">Mapa</string>
+    <string name="map_no_key">Dodaj MAPS_API_KEY do local.properties, aby włączyć mapę.</string>
+    <string name="view_listing">Zobacz ogłoszenie</string>
+    <string name="share">Udostępnij</string>
+</resources>

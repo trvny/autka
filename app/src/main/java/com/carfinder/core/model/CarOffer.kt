@@ -26,4 +26,8 @@ data class CarOffer(
     val postedAtEpochMs: Long?,
     /** Filled in for USA offers so the user sees true landed cost, null otherwise. */
     val importEstimate: ImportCostEstimate? = null,
+    /** >1 when this offer represents several de-duplicated cross-source listings. */
+    val listingCount: Int? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )

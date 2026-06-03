@@ -1,8 +1,15 @@
-/** Constant-time string comparison to avoid timing side-channels on token checks. */
-export function timingSafeEqualStr(a: string, b: string): boolean {
+/**
+ * Constant-time string comparison for secret/token checks.
+ *
+ * Hashes both inputs to a fixed 32-byte SHA-256 digest before comparing, so:
+ *  - no early return on length mismatch (which would leak the expected length via timing), and
+ *  - crypto.subtle.timingSafeEqual never throws (it requires equal-length buffers).
+ */
+export async function timingSafeEqualStr(a: string, b: string): Promise<boolean> {
   const enc = new TextEncoder();
-  const ab = enc.encode(a);
-  const bb = enc.encode(b);
-  if (ab.byteLength !== bb.byteLength) return false;
-  return crypto.subtle.timingSafeEqual(ab, bb);
+  const [ah, bh] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(a)),
+    crypto.subtle.digest("SHA-256", enc.encode(b)),
+  ]);
+  return crypto.subtle.timingSafeEqual(ah, bh);
 }

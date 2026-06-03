@@ -23,6 +23,16 @@ android {
         // Override per environment. 10.0.2.2 = host loopback from the Android emulator,
         // so `wrangler dev` (localhost:8787) is reachable in debug builds.
         buildConfigField("String", "BACKEND_BASE_URL", "\"http://10.0.2.2:8787/\"")
+
+        // Google Maps API key: put MAPS_API_KEY=... in local.properties (never committed).
+        val mapsKey = run {
+            val props = java.util.Properties()
+            val f = rootProject.file("local.properties")
+            if (f.exists()) f.inputStream().use { props.load(it) }
+            props.getProperty("MAPS_API_KEY", "")
+        }
+        manifestPlaceholders["MAPS_API_KEY"] = mapsKey
+        buildConfigField("String", "MAPS_API_KEY", "\"$mapsKey\"")
     }
 
     buildTypes {
@@ -83,6 +93,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.coil.compose)
+    implementation(libs.maps.compose)
 
     implementation(libs.androidx.datastore.preferences)
 }

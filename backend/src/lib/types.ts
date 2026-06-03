@@ -35,6 +35,11 @@ export interface CarOffer {
   imageUrls: string[];
   listingUrl: string;
   postedAtEpochMs: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  // Populated only on deduped query results when >1 listing collapsed together:
+  listingCount?: number;     // total listings in the duplicate group (>= 2)
+  otherSources?: string[];   // distinct source ids across the group
 }
 
 export interface SearchFilter {
@@ -50,6 +55,7 @@ export interface SearchFilter {
   regions?: Region[];
   sourceIds?: string[];
   sort?: "NEWEST" | "PRICE_ASC" | "PRICE_DESC" | "MILEAGE_ASC" | "YEAR_DESC";
+  dedup?: boolean; // collapse cross-source duplicates (default true)
   limit?: number;
   offset?: number;
 }

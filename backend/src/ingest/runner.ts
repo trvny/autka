@@ -2,6 +2,7 @@ import type { IngestSource } from "./source";
 import { mockSource } from "./sources/mock";
 import { otomotoSource, olxSource, facebookSource, usAuctionSource } from "./sources/stubs";
 import { upsertOffers } from "../db/offers";
+import { cacheOfferImages } from "./images";
 
 /** Every source the backend knows about. Add a marketplace by appending here. */
 export const ALL_SOURCES: IngestSource[] = [
@@ -33,7 +34,9 @@ async function runOne(env: Env, source: IngestSource): Promise<IngestResult> {
   const started = Date.now();
   try {
     const offers = await source.fetch(env);
-    const upserted = await upsertOffers(env.DB, offers);
+    // Cache images to R2 and rewrite URLs (best-effort; never throws).
+    const withImages = await Promise.all(offers.map((o) => cacheOfferImages(env, o)));
+    const upserted = await upsertOffers(env.DB, withImages);
     await recordRun(env, source.sourceId, started, upserted, true, null);
     console.log(JSON.stringify({ msg: "ingest_ok", sourceId: source.sourceId, upserted }));
     return { sourceId: source.sourceId, ok: true, upserted };

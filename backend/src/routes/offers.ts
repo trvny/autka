@@ -5,12 +5,27 @@ import { ALL_SOURCES } from "../ingest/runner";
 
 export const offersRouter = new Hono<{ Bindings: Env }>();
 
+// Whitelists for validating untyped query input (validate, don't assert).
+const FUEL_TYPES: readonly FuelType[] = [
+  "PETROL", "DIESEL", "HYBRID", "PLUGIN_HYBRID", "ELECTRIC", "LPG", "OTHER", "UNKNOWN",
+];
+const REGIONS: readonly Region[] = ["POLAND", "EUROPE", "USA"];
+const SORTS: readonly NonNullable<SearchFilter["sort"]>[] = [
+  "NEWEST", "PRICE_ASC", "PRICE_DESC", "MILEAGE_ASC", "YEAR_DESC",
+];
+
 // GET /offers — search with query params mirroring the app's SearchFilter.
 offersRouter.get("/offers", async (c) => {
   const q = c.req.query();
   const num = (v: string | undefined) => (v != null && v !== "" ? Number(v) : undefined);
   const list = (v: string | undefined) => (v ? v.split(",").filter(Boolean) : undefined);
+  // Keep only values that are members of the allowed set; drop anything unknown.
+  const subset = <T extends string>(v: string | undefined, allowed: readonly T[]): T[] | undefined => {
+    const items = list(v)?.filter((x): x is T => (allowed as readonly string[]).includes(x));
+    return items && items.length ? items : undefined;
+  };
 
+  const sortRaw = q.sort;
   const filter: SearchFilter = {
     query: q.query || undefined,
     make: q.make || undefined,
@@ -20,10 +35,11 @@ offersRouter.get("/offers", async (c) => {
     minYear: num(q.minYear),
     maxYear: num(q.maxYear),
     maxMileageKm: num(q.maxMileageKm),
-    fuelTypes: list(q.fuelTypes) as FuelType[] | undefined,
-    regions: list(q.regions) as Region[] | undefined,
+    fuelTypes: subset(q.fuelTypes, FUEL_TYPES),
+    regions: subset(q.regions, REGIONS),
     sourceIds: list(q.sources),
-    sort: (q.sort as SearchFilter["sort"]) || "NEWEST",
+    sort: (SORTS as readonly string[]).includes(sortRaw) ? (sortRaw as SearchFilter["sort"]) : "NEWEST",
+    dedup: q.dedup !== "false", // collapse duplicates unless explicitly disabled
     limit: num(q.limit),
     offset: num(q.offset),
   };

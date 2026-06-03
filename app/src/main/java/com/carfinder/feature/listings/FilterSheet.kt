@@ -1,5 +1,7 @@
 package com.carfinder.feature.listings
 
+import androidx.compose.ui.res.stringResource
+import com.carfinder.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -67,10 +69,10 @@ fun FilterSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Text("Filters", fontWeight = FontWeight.Bold, style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.filters), fontWeight = FontWeight.Bold, style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
 
             if (availableMakes.isNotEmpty()) {
-                Section("Make") {
+                Section(stringResource(R.string.filter_make)) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         availableMakes.forEach { make ->
                             FilterChip(
@@ -83,12 +85,12 @@ fun FilterSheet(
                 }
             }
 
-            Section("Price range (${priceCurrency.symbol})") {
+            Section(stringResource(R.string.filter_price_range, priceCurrency.symbol)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = draft.minPrice?.toLong()?.toString() ?: "",
                         onValueChange = { draft = draft.copy(minPrice = it.toDoubleOrNull()) },
-                        label = { Text("Min") },
+                        label = { Text(stringResource(R.string.filter_min)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
@@ -96,7 +98,7 @@ fun FilterSheet(
                     OutlinedTextField(
                         value = draft.maxPrice?.toLong()?.toString() ?: "",
                         onValueChange = { draft = draft.copy(maxPrice = it.toDoubleOrNull()) },
-                        label = { Text("Max") },
+                        label = { Text(stringResource(R.string.filter_max)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
@@ -104,7 +106,7 @@ fun FilterSheet(
                 }
             }
 
-            Section("Min year: ${draft.minYear ?: "Any"}") {
+            Section(stringResource(R.string.filter_min_year, draft.minYear?.toString() ?: stringResource(R.string.filter_any))) {
                 Slider(
                     value = (draft.minYear ?: MIN_YEAR.toInt()).toFloat(),
                     onValueChange = { v ->
@@ -116,7 +118,7 @@ fun FilterSheet(
                 )
             }
 
-            Section("Max mileage: ${draft.maxMileageKm?.let { "${it / 1000}k km" } ?: "Any"}") {
+            Section(stringResource(R.string.filter_max_mileage, draft.maxMileageKm?.let { "${it / 1000}k km" } ?: stringResource(R.string.filter_any))) {
                 Slider(
                     value = (draft.maxMileageKm ?: MAX_MILEAGE.toInt()).toFloat(),
                     onValueChange = { v ->
@@ -128,7 +130,7 @@ fun FilterSheet(
                 )
             }
 
-            Section("Fuel") {
+            Section(stringResource(R.string.spec_fuel)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FUEL_CHOICES.forEach { fuel ->
                         FilterChip(
@@ -146,7 +148,7 @@ fun FilterSheet(
                 }
             }
 
-            Section("Region") {
+            Section(stringResource(R.string.filter_region)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Region.entries.forEach { region ->
                         FilterChip(
@@ -165,7 +167,7 @@ fun FilterSheet(
             }
 
             if (availableSources.isNotEmpty()) {
-                Section("Sources") {
+                Section(stringResource(R.string.filter_sources)) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         availableSources.forEach { source ->
                             FilterChip(
@@ -185,7 +187,7 @@ fun FilterSheet(
                 }
             }
 
-            Section("Sort by") {
+            Section(stringResource(R.string.filter_sort_by)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SortOrder.entries.forEach { sort ->
                         FilterChip(
@@ -201,11 +203,11 @@ fun FilterSheet(
                 OutlinedButton(
                     onClick = onReset,
                     modifier = Modifier.weight(1f),
-                ) { Text("Reset") }
+                ) { Text(stringResource(R.string.reset)) }
                 Button(
                     onClick = { onApply(draft) },
                     modifier = Modifier.weight(1f),
-                ) { Text("Apply") }
+                ) { Text(stringResource(R.string.apply)) }
             }
         }
     }
@@ -219,27 +221,30 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     }
 }
 
+@Composable
 private fun FuelType.label() = when (this) {
-    FuelType.PETROL -> "Petrol"
-    FuelType.DIESEL -> "Diesel"
-    FuelType.HYBRID -> "Hybrid"
-    FuelType.PLUGIN_HYBRID -> "Plug-in"
-    FuelType.ELECTRIC -> "Electric"
-    FuelType.LPG -> "LPG"
-    FuelType.OTHER -> "Other"
-    FuelType.UNKNOWN -> "Unknown"
+    FuelType.PETROL -> stringResource(R.string.fuel_petrol)
+    FuelType.DIESEL -> stringResource(R.string.fuel_diesel)
+    FuelType.HYBRID -> stringResource(R.string.fuel_hybrid)
+    FuelType.PLUGIN_HYBRID -> stringResource(R.string.fuel_plugin)
+    FuelType.ELECTRIC -> stringResource(R.string.fuel_electric)
+    FuelType.LPG -> stringResource(R.string.fuel_lpg)
+    FuelType.OTHER -> stringResource(R.string.fuel_other)
+    FuelType.UNKNOWN -> stringResource(R.string.fuel_unknown)
 }
 
+@Composable
 private fun Region.label() = when (this) {
-    Region.POLAND -> "Poland"
-    Region.EUROPE -> "Europe"
-    Region.USA -> "US import"
+    Region.POLAND -> stringResource(R.string.region_poland)
+    Region.EUROPE -> stringResource(R.string.region_europe)
+    Region.USA -> stringResource(R.string.region_usa)
 }
 
+@Composable
 private fun SortOrder.label() = when (this) {
-    SortOrder.NEWEST -> "Newest"
-    SortOrder.PRICE_ASC -> "Price up"
-    SortOrder.PRICE_DESC -> "Price down"
-    SortOrder.MILEAGE_ASC -> "Mileage"
-    SortOrder.YEAR_DESC -> "Year"
+    SortOrder.NEWEST -> stringResource(R.string.sort_newest)
+    SortOrder.PRICE_ASC -> stringResource(R.string.sort_price_up)
+    SortOrder.PRICE_DESC -> stringResource(R.string.sort_price_down)
+    SortOrder.MILEAGE_ASC -> stringResource(R.string.sort_mileage)
+    SortOrder.YEAR_DESC -> stringResource(R.string.sort_year)
 }

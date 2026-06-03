@@ -41,8 +41,9 @@ class MockCarOfferSource @Inject constructor() : CarOfferSource {
             price = Money(78_900.0, Currency.PLN),
             fuelType = FuelType.DIESEL, transmission = Transmission.AUTOMATIC, powerHp = 190,
             location = "Krakow, PL", region = Region.POLAND,
-            thumbnailUrl = null, imageUrls = emptyList(),
+            thumbnailUrl = "https://picsum.photos/seed/mock1/640/480", imageUrls = listOf("https://picsum.photos/seed/mock1/640/480", "https://picsum.photos/seed/mock1b/640/480"),
             listingUrl = "https://example.com/listing/1", postedAtEpochMs = nowMinusHours(3),
+            latitude = 50.0647, longitude = 19.9450,
         ),
         CarOffer(
             id = "mock:2", sourceId = sourceId,
@@ -51,8 +52,9 @@ class MockCarOfferSource @Inject constructor() : CarOfferSource {
             price = Money(19_500.0, Currency.EUR),
             fuelType = FuelType.PETROL, transmission = Transmission.AUTOMATIC, powerHp = 190,
             location = "Berlin, DE", region = Region.EUROPE,
-            thumbnailUrl = null, imageUrls = emptyList(),
+            thumbnailUrl = "https://picsum.photos/seed/mock2/640/480", imageUrls = listOf("https://picsum.photos/seed/mock2/640/480", "https://picsum.photos/seed/mock2b/640/480"),
             listingUrl = "https://example.com/listing/2", postedAtEpochMs = nowMinusHours(20),
+            latitude = 52.5200, longitude = 13.4050,
         ),
         CarOffer(
             id = "mock:3", sourceId = sourceId,
@@ -61,8 +63,9 @@ class MockCarOfferSource @Inject constructor() : CarOfferSource {
             price = Money(18_000.0, Currency.USD),
             fuelType = FuelType.PETROL, transmission = Transmission.AUTOMATIC, powerHp = 460,
             location = "Newark, NJ, USA", region = Region.USA,
-            thumbnailUrl = null, imageUrls = emptyList(),
+            thumbnailUrl = "https://picsum.photos/seed/mock3/640/480", imageUrls = listOf("https://picsum.photos/seed/mock3/640/480", "https://picsum.photos/seed/mock3b/640/480"),
             listingUrl = "https://example.com/listing/3", postedAtEpochMs = nowMinusHours(50),
+            latitude = 40.7357, longitude = -74.1724,
             importEstimate = ImportCostCalculator.estimate(
                 vehiclePriceUsd = 18_000.0, shippingUsd = 2_400.0, engineCapacityCc = 5000,
             ),
