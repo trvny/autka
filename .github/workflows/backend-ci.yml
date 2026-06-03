@@ -7,7 +7,6 @@ on:
   pull_request:
     branches: [ main ]
     paths: [ "backend/**", ".github/workflows/backend-ci.yml" ]
-  workflow_dispatch:
 
 concurrency:
   group: backend-ci-${{ github.ref }}
@@ -67,6 +66,12 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Apply D1 migrations (remote)
+        run: npx wrangler d1 migrations apply cargate-offers --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy
         run: npx wrangler deploy
