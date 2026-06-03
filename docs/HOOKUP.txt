@@ -1,0 +1,61 @@
+AUTKA — deep-link row hookup
+============================
+
+1) ListingsScreen.kt — imports
+   Add:
+       import com.autka.feature.external.MarketplaceLinksRow
+
+2) ListingsScreen.kt — show the row in BOTH the empty state and below results.
+   Replace the existing `when { ... }` block with:
+
+            when {
+                uiState.isRefreshing && uiState.offers.isEmpty() -> LoadingIndicator()
+                uiState.offers.isEmpty() -> Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    EmptyState(
+                        if (uiState.activeFilterCount > 0) stringResource(R.string.empty_no_match)
+                        else stringResource(R.string.empty_no_offers),
+                    )
+                    // No results in our cache — let the user jump straight to the
+                    // marketplaces' own search, pre-filled from their filter.
+                    MarketplaceLinksRow(filter = uiState.filter)
+                }
+                else -> LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(uiState.offers, key = { it.id }) { offer ->
+                        OfferCard(
+                            offer = offer,
+                            displayCurrency = uiState.displayCurrency,
+                            rates = uiState.exchangeRates,
+                            onClick = { onOfferClick(offer.id) },
+                        )
+                    }
+                    // Footer: always offer "continue on Otomoto/OLX" under the list.
+                    item {
+                        MarketplaceLinksRow(
+                            filter = uiState.filter,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
+            }
+
+   (uiState.filter already exists on ListingsUiState; no ViewModel change needed.)
+
+3) MarketplaceLinksRow.kt — two imports I left out earlier:
+       import androidx.compose.runtime.remember
+       import androidx.compose.foundation.layout.size
+
+4) res/values/strings.xml  (English / default)
+       <string name="continue_search_on">Continue your search on</string>
+       <string name="no_browser">No app found to open this link</string>
+
+5) res/values-pl/strings.xml  (Polish)
+       <string name="continue_search_on">Szukaj dalej w serwisie</string>
+       <string name="no_browser">Brak aplikacji do otwarcia tego linku</string>
+
+Affiliate later: MarketplaceLinksRow(filter = uiState.filter, affiliateId = "yourId")
+Verify the otomoto/olx search[...] param keys live before relying on the filtering.
