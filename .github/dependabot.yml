@@ -7,8 +7,8 @@ updates:
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
+#      day: "monday"
       time: "06:00"
       timezone: "Europe/Warsaw"
     open-pull-requests-limit: 10
@@ -29,6 +29,23 @@ updates:
       # Everything else (Hilt, Room, Retrofit, OkHttp, Coil, coroutines, ...)
       # grouped so minor/patch bumps arrive as a single reviewable PR.
       misc-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # --- Backend (Cloudflare Worker) npm dependencies ---
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Warsaw"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps(backend)"
+    groups:
+      backend-minor-patch:
         update-types:
           - "minor"
           - "patch"
