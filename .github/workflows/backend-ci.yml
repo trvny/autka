@@ -7,7 +7,6 @@ on:
   pull_request:
     branches: [ main ]
     paths: [ "backend/**", ".github/workflows/backend-ci.yml" ]
-  workflow_dispatch:
 
 concurrency:
   group: backend-ci-${{ github.ref }}
@@ -37,6 +36,9 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Check generated types are current
+        run: npx wrangler types --check
 
       - name: Typecheck
         run: npm run typecheck
