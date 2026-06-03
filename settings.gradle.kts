@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CarGate"
+rootProject.name = "Autka"
 include(":app")

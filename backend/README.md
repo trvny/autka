@@ -1,7 +1,7 @@
-# CarGate Backend
+# Autka Backend
 
 Cloudflare Workers backend that aggregates used-car offers server-side and serves a
-clean API to the CarGate Android app. Built on **Workers + D1** (SQL) **+ R2** (images),
+clean API to the Autka Android app. Built on **Workers + D1** (SQL) **+ R2** (images),
 with a cron-triggered ingestion pipeline. Aggregation, credentials, and any feed access
 live here — never on the device.
 
@@ -24,7 +24,7 @@ isolates failures, and upserts results into D1. The app then talks to one endpoi
 | GET    | `/images/<key>` | Serve an offer image from R2 (streamed, cached, ETag/304) |
 
 `/offers` returns `{ offers: CarOffer[], count }`. The `CarOffer` shape in
-`src/lib/types.ts` mirrors the Android `com.carfinder.core.model.CarOffer` — keep them
+`src/lib/types.ts` mirrors the Android `com.autka.core.model.CarOffer` — keep them
 in sync.
 
 ## Provisioned resources (Cloudflare account: travny)

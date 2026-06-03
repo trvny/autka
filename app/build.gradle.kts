@@ -10,11 +10,11 @@ plugins {
 }
 
 android {
-    namespace = "com.carfinder"
+    namespace = "com.autka"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.carfinder"
+        applicationId = "com.autka"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

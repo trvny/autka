@@ -1,4 +1,4 @@
--- CarGate offers store. One row per normalized listing across all sources.
+-- Autka offers store. One row per normalized listing across all sources.
 CREATE TABLE IF NOT EXISTS offers (
   id                TEXT PRIMARY KEY,        -- "source:nativeId"
   source_id         TEXT NOT NULL,

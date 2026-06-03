@@ -1,7 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">CarGate</string>
-    <!-- Secondary brand kept as a launcher alias label -->
-    <string name="app_name_alias" translatable="false">CarFinder</string>
+    <string name="app_name" translatable="false">Autka</string>
 
     <!-- Listings -->
     <string name="search_hint">Search make, model…</string>

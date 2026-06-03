@@ -1,5 +1,5 @@
 // The normalized offer shape served to the app. Mirrors the Android CarOffer model
-// (com.carfinder.core.model.CarOffer) so the app's BackendCarOfferSource can parse it
+// (com.autka.core.model.CarOffer) so the app's BackendCarOfferSource can parse it
 // directly. Keep these two in sync.
 
 export type Region = "POLAND" | "EUROPE" | "USA";

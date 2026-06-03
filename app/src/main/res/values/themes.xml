@@ -1,3 +1,3 @@
 <resources>
-    <style name="Theme.CarFinder" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Autka" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

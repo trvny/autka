@@ -1,20 +1,20 @@
-# CarGate
+# Autka
 
 An Android app that aggregates used-car offers from multiple marketplaces across
 **Poland, the rest of Europe, and US import sources** into one searchable list, with
 landed-cost estimation for vehicles imported from the USA.
 
-> Formerly **CarFinder**. CarFinder is retained as a secondary brand: a launchable
-> Android `activity-alias` (label "CarFinder") and the internal code identity
-> (package `com.carfinder`, `CarFinder*` classes). Only the user-facing name and the
-> Gradle project name changed to CarGate.
+> Formerly **Autka**. Autka is retained as a secondary brand: a launchable
+> Android `activity-alias` (label "Autka") and the internal code identity
+> (package `com.autka`, `Autka*` classes). Only the user-facing name and the
+> Gradle project name changed to Autka.
 
 ## Repository layout
 
 This is a monorepo:
 
 ```
-/            Android app (CarGate) — Kotlin, Compose, root Gradle project
+/            Android app (Autka) — Kotlin, Compose, root Gradle project
 /backend     Cloudflare Workers backend — TypeScript, D1, R2 (see backend/README.md)
 ```
 
