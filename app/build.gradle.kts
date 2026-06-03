@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -26,7 +28,7 @@ android {
 
         // Google Maps API key: put MAPS_API_KEY=... in local.properties (never committed).
         val mapsKey = run {
-            val props = java.util.Properties()
+            val props = Properties()
             val f = rootProject.file("local.properties")
             if (f.exists()) f.inputStream().use { props.load(it) }
             props.getProperty("MAPS_API_KEY", "")
