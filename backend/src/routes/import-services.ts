@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { IMPORT_SERVICES, importServicesForRegion, type Region } from "../data/import-services";
+import { importServicesForRegion, type Region } from "../data/import-services";
 
 // GET /import-services            -> all companies
 // GET /import-services?region=USA -> companies importing from that region
