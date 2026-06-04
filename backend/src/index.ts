@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { offersRouter } from "./routes/offers";
 import { adminRouter } from "./routes/admin";
 import { imagesRouter } from "./routes/images";
+import { importServicesRouter } from "./routes/import-services";
 import { runIngestion } from "./ingest/runner";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -12,6 +13,7 @@ app.get("/health", (c) => c.json({ status: "ok", time: new Date().toISOString() 
 app.route("/", offersRouter);
 app.route("/", adminRouter);
 app.route("/", imagesRouter);
+app.route("/", importServicesRouter);
 
 // Structured error response — no passThroughOnException; explicit handling.
 app.onError((err, c) => {
