@@ -63,7 +63,9 @@ object MarketplaceSearchLinks {
             .filter { it.regions.any { r -> r in filter.regions } }
             .map { MarketplaceLink(it.sourceId, it.displayName, it.build(filter, affiliateId)) }
 
-    // --- Otomoto (PL) — path shape CONFIRMED; filter keys TODO(verify) -------
+    // --- Otomoto (PL) — path + price/year/mileage/fuel/order keys VERIFIED ---
+    // (confirmed against a live filtered otomoto.pl URL). Make/model are path
+    // segments; the free-text make fallback below is still best-effort.
 
     private fun otomoto(f: SearchFilter, affiliateId: String?): String {
         val path = buildString {
@@ -72,25 +74,30 @@ object MarketplaceSearchLinks {
             if (f.make != null) f.model?.let { append("/").append(slug(it)) }
         }
         val q = Params()
-        f.minPrice?.let { q["search[filter_float_price:from]"] = it.toLong().toString() } // TODO(verify)
-        f.maxPrice?.let { q["search[filter_float_price:to]"] = it.toLong().toString() }   // TODO(verify)
-        f.minYear?.let { q["search[filter_float_year:from]"] = it.toString() }            // TODO(verify)
-        f.maxYear?.let { q["search[filter_float_year:to]"] = it.toString() }              // TODO(verify)
-        f.maxMileageKm?.let { q["search[filter_float_mileage:to]"] = it.toString() }      // TODO(verify)
-        otomotoFuel(f.fuelTypes.firstOrNull())?.let { q["search[filter_enum_fuel_type]"] = it } // TODO(verify)
-        otomotoOrder(f.sort)?.let { q["search[order]"] = it }                             // TODO(verify)
+        // Keys VERIFIED against a live filtered Otomoto URL (price/year/mileage/fuel/order).
+        f.minPrice?.let { q["search[filter_float_price:from]"] = it.toLong().toString() }
+        f.maxPrice?.let { q["search[filter_float_price:to]"] = it.toLong().toString() }
+        f.minYear?.let { q["search[filter_float_year:from]"] = it.toString() }
+        f.maxYear?.let { q["search[filter_float_year:to]"] = it.toString() }
+        f.maxMileageKm?.let { q["search[filter_float_mileage:to]"] = it.toString() }
+        // Fuel is an INDEXED array param, one entry per selected type:
+        // search[filter_enum_fuel_type][0]=petrol&...[1]=diesel
+        f.fuelTypes.mapNotNull(::otomotoFuel).forEachIndexed { i, slug ->
+            q["search[filter_enum_fuel_type][$i]"] = slug
+        }
+        otomotoOrder(f.sort)?.let { q["search[order]"] = it }
         if (f.make == null) f.query.takeIf { it.isNotBlank() }?.let { q["search[filter_enum_make]"] = slug(it) }
         affiliateId?.let { q["utm_source"] = it } // TODO(verify): real affiliate param on joining the program
         return path + q.render()
     }
 
-    private fun otomotoFuel(t: FuelType?): String? = when (t) { // TODO(verify) slugs
+    private fun otomotoFuel(t: FuelType?): String? = when (t) {
         FuelType.PETROL -> "petrol"
         FuelType.DIESEL -> "diesel"
-        FuelType.HYBRID -> "hybrid"
-        FuelType.PLUGIN_HYBRID -> "plugin-hybrid"
-        FuelType.ELECTRIC -> "electric"
-        FuelType.LPG -> "lpg-petrol"
+        FuelType.LPG -> "petrol-lpg"          // verified (NB: petrol-lpg, not lpg-petrol)
+        FuelType.HYBRID -> "hybrid"           // TODO(verify) slug
+        FuelType.PLUGIN_HYBRID -> "plugin-hybrid" // TODO(verify) slug
+        FuelType.ELECTRIC -> "electric"       // TODO(verify) slug
         else -> null
     }
 
