@@ -3,9 +3,9 @@
 // live here as static reference data (no D1 needed) and are surfaced on the app's offer
 // DETAIL screen next to the landed-cost breakdown.
 //
-// Mirrors the app's built-in fallback list (feature/external/ImportService.kt). Keep the
-// two in sync; the app fetches this to override its seed so brokers can be added without
-// an app release.
+// Mirrors the app's compiled-in seed (core/model/ImportService.kt +
+// data/imports/DefaultImportServices.kt). Keep them in sync; the app fetches this to
+// override its seed so brokers can be added without an app release.
 //
 // `origin` is the region the company imports FROM (matched to an offer's region).
 // ⚠️ Only usaimport.pl's calculatorUrl is verified; others are homepages — confirm real
