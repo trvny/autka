@@ -157,15 +157,21 @@ object MarketplaceSearchLinks {
         return "https://www.autouncle.pl/pl/samochody-uzywane" + q.render()
     }
 
-    // --- AutoScout24 (EU) — path + params CONFIRMED (pricefrom/priceto/fregfrom/kmto) -
+    // --- AutoScout24 (.pl) — host + atype/ustate/cy/damaged VERIFIED from a live URL -
+    // price/reg/mileage keys (pricefrom/priceto/fregfrom/fregto/kmto) are AS24's
+    // long-standing params. cy scopes to common EU export markets (from the live URL).
 
     private fun autoScout24(f: SearchFilter): String {
         val path = buildString {
-            append("https://www.autoscout24.com/lst")
+            append("https://www.autoscout24.pl/lst")
             f.make?.let { append("/").append(slug(it)) }
             if (f.make != null) f.model?.let { append("/").append(slug(it)) }
         }
         val q = Params()
+        q["atype"] = "C"                 // cars (verified)
+        q["ustate"] = "N,U"              // new + used (verified)
+        q["damaged_listing"] = "exclude" // hide damaged (verified)
+        q["cy"] = "D,A,I,B,NL,E,L,F"     // DE/AT/IT/BE/NL/ES/LU/FR — common EU export markets (verified)
         f.minPrice?.let { q["pricefrom"] = it.toLong().toString() }
         f.maxPrice?.let { q["priceto"] = it.toLong().toString() }
         f.minYear?.let { q["fregfrom"] = it.toString() }
@@ -225,9 +231,18 @@ object MarketplaceSearchLinks {
     // TODO(verify). The detail screen pairs these with ImportServices (PL brokers) and
     // the landed-cost breakdown.
 
-    private fun copart(f: SearchFilter): String =
-        "https://www.copart.com/lotSearchResults" +
-            Params().apply { terms(f).takeIf { it.isNotEmpty() }?.let { this["free_form_search"] = it } }.render() // TODO(verify)
+    private fun copart(f: SearchFilter): String {
+        // VERIFIED: Copart make browse is /pl/vehicle-search-make/<make>?displayStr=<Make>.
+        f.make?.let { mk ->
+            val q = Params()
+            q["displayStr"] = mk
+            return "https://www.copart.com/pl/vehicle-search-make/${slug(mk)}" + q.render()
+        }
+        // No make selected -> keyword search (best-effort; TODO(verify)).
+        val q = Params()
+        terms(f).takeIf { it.isNotEmpty() }?.let { q["free_form_search"] = it }
+        return "https://www.copart.com/lotSearchResults" + q.render()
+    }
 
     private fun iaai(f: SearchFilter): String =
         "https://www.iaai.com/Search" +
