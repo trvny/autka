@@ -2,6 +2,7 @@ package com.autka.data.imports
 
 import com.autka.core.model.ImportService
 import com.autka.data.remote.backend.BackendApi
+import com.autka.data.remote.backend.toModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
