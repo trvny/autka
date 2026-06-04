@@ -43,6 +43,7 @@ android {
             //   https://cargate-backend.<your-subdomain>.workers.dev/
             buildConfigField("String", "BACKEND_BASE_URL", "\"https://cargate-backend.example.workers.dev/\"")
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

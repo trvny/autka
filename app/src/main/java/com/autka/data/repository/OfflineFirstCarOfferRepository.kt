@@ -7,6 +7,7 @@ import com.autka.data.local.toEntity
 import com.autka.data.local.toModel
 import com.autka.data.remote.CarOfferSource
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -30,18 +31,17 @@ class OfflineFirstCarOfferRepository @Inject constructor(
             source.isEnabled &&
                 (filter.sourceIds.isEmpty() || source.sourceId in filter.sourceIds)
         }
-        val failed = mutableListOf<String>()
-        val results = active.map { source ->
-            async {
-                runCatching { source.fetch(filter) }
-                    .getOrElse { failed += source.sourceId; emptyList() }
-            }
-        }.flatMap { it.await() }
+        // Each coroutine returns its own (source, result) pair, so there is no shared
+        // mutable state across the concurrent fetches.
+        val outcomes = active.map { source ->
+            async { source to runCatching { source.fetch(filter) } }
+        }.awaitAll()
 
+        val results = outcomes.mapNotNull { (_, result) -> result.getOrNull() }.flatten()
         if (results.isNotEmpty()) {
             dao.upsertAll(results.map { it.toEntity() })
         }
-        failed
+        outcomes.filter { it.second.isFailure }.map { it.first.sourceId }
     }
 
     override fun availableSources(): List<SourceInfo> =
