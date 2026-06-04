@@ -68,7 +68,6 @@
     <string name="sort_year">Rok</string>
     <string name="map_title">Mapa</string>
     <string name="cd_map">Mapa</string>
-    <string name="map_no_key">Dodaj MAPS_API_KEY do local.properties, aby włączyć mapę.</string>
     <string name="view_listing">Zobacz ogłoszenie</string>
     <string name="share">Udostępnij</string>
     <plurals name="listed_on_sites">

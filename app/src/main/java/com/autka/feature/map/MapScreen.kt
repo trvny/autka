@@ -11,19 +11,22 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.autka.BuildConfig
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.autka.R
 import com.autka.core.model.CarOffer
-import com.autka.ui.components.EmptyState
 import com.autka.ui.components.formatted
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberMarkerState
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,38 +47,66 @@ fun MapScreen(
             )
         },
     ) { padding ->
-        // The Maps SDK needs an API key (manifest meta-data). Without one, tiles won't
-        // load, so show a clear message instead of a blank map.
-        if (BuildConfig.MAPS_API_KEY.isBlank()) {
-            EmptyState(stringResource(R.string.map_no_key), Modifier.padding(padding))
-            return@Scaffold
-        }
+        val context = LocalContext.current
+        val lifecycleOwner = LocalLifecycleOwner.current
 
-        val located = offers.filter { it.latitude != null && it.longitude != null }
-        val focus = located.firstOrNull()
-        val cameraPositionState = rememberCameraPositionState {
-            position = CameraPosition.fromLatLngZoom(
-                LatLng(focus?.latitude ?: 52.0, focus?.longitude ?: 19.0),
-                if (focus != null) 5f else 3f,
-            )
-        }
-
-        GoogleMap(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            cameraPositionState = cameraPositionState,
-        ) {
-            located.forEach { offer ->
-                val markerState = rememberMarkerState(
-                    key = offer.id,
-                    position = LatLng(offer.latitude!!, offer.longitude!!),
-                )
-                Marker(
-                    state = markerState,
-                    title = offer.title,
-                    snippet = offer.price.formatted(),
-                    onInfoWindowClick = { onOfferClick(offer.id) },
-                )
+        // One MapView reused across recompositions. OpenStreetMap tiles need no API key;
+        // the required non-default User-Agent is set in AutkaApplication.
+        val mapView = remember {
+            MapView(context).apply {
+                setTileSource(TileSourceFactory.MAPNIK)
+                setMultiTouchControls(true)
+                controller.setZoom(5.0)
+                controller.setCenter(GeoPoint(52.0, 19.0)) // Poland, default view
             }
         }
+
+        // osmdroid's MapView is a plain Android View - forward lifecycle and clean up.
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                    Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                    else -> Unit
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+                mapView.onDetach()
+            }
+        }
+
+        // Whether we've already centred on a real offer, so updating offers doesn't yank
+        // the camera back while the user is panning. Plain array = no recomposition.
+        val centeredOnce = remember { booleanArrayOf(false) }
+
+        AndroidView(
+            factory = { mapView },
+            modifier = Modifier.fillMaxSize().padding(padding),
+            update = { map ->
+                map.overlays.clear()
+                val located = offers.filter { it.latitude != null && it.longitude != null }
+                located.forEach { offer ->
+                    val marker = Marker(map).apply {
+                        position = GeoPoint(offer.latitude!!, offer.longitude!!)
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        title = offer.title
+                        snippet = offer.price.formatted()
+                        setOnMarkerClickListener { _, _ ->
+                            onOfferClick(offer.id)
+                            true
+                        }
+                    }
+                    map.overlays.add(marker)
+                }
+                if (!centeredOnce[0] && located.isNotEmpty()) {
+                    val first = located.first()
+                    map.controller.setCenter(GeoPoint(first.latitude!!, first.longitude!!))
+                    centeredOnce[0] = true
+                }
+                map.invalidate()
+            },
+        )
     }
 }

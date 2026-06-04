@@ -13,11 +13,7 @@
         android:theme="@style/Theme.Autka"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- Google Maps API key, supplied via manifestPlaceholder from local.properties.
-             The map screen degrades to a message when this is empty/unset. -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="${MAPS_API_KEY}" />
+        <!-- Map tiles come from OpenStreetMap via osmdroid - no API key required. -->
 
         <!-- Primary entry: Autka (inherits the application label) -->
         <activity
