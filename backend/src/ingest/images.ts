@@ -33,6 +33,15 @@ export async function cacheOfferImages(env: Env, offer: CarOffer): Promise<CarOf
 async function cacheOne(env: Env, offerId: string, index: number, url: string): Promise<string | null> {
   try {
     if (!/^https?:\/\//i.test(url)) return null; // already relative/cached
+
+    const key = `offers/${safeId(offerId)}/${index}`;
+    // Already cached on a previous run? Skip the source refetch and the R2 write.
+    // head() is a cheap Class B op; the put() it replaces is a Class A op (plus the
+    // outbound image fetch), so this removes the bulk of per-run R2 cost. Cached
+    // images are treated as immutable — a listing whose photos change normally
+    // gets a new offer id (hence a new key) anyway.
+    if (await env.IMAGES.head(key)) return `/images/${key}`;
+
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!res.ok || !res.body) return null;
     const contentType = res.headers.get("content-type") ?? "";
@@ -40,7 +49,6 @@ async function cacheOne(env: Env, offerId: string, index: number, url: string): 
     const declaredLen = Number(res.headers.get("content-length") ?? "0");
     if (declaredLen > MAX_IMAGE_BYTES) return null;
 
-    const key = `offers/${safeId(offerId)}/${index}`;
     await env.IMAGES.put(key, res.body, { httpMetadata: { contentType } });
     return `/images/${key}`;
   } catch {

@@ -21,8 +21,10 @@
     { "binding": "IMAGES", "bucket_name": "cargate-images" }
   ],
   "triggers": {
-    // Re-run ingestion every 30 minutes
-    "crons": ["*/30 * * * *"]
+    // Re-run ingestion hourly. Each run re-upserts every offer and writes one
+    // ingest_runs row per source, so fewer runs = fewer D1 rows written/day —
+    // the binding limit on the Workers Free plan. (Was */30.)
+    "crons": ["0 * * * *"]
   },
   "vars": {
     "ENVIRONMENT": "production"
