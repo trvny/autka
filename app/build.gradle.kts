@@ -106,4 +106,7 @@ dependencies {
     implementation(libs.osmdroid.android)
 
     implementation(libs.androidx.datastore.preferences)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
