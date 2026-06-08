@@ -60,6 +60,17 @@ kotlin {
     }
 }
 
+// Hilt 2.59.2's aggregating javac step (hiltJavaCompileDebug) reads Kotlin class metadata
+// via org.jetbrains.kotlin:kotlin-metadata-jvm, whose bundled version only parses up to
+// metadata 2.3.0. Kotlin 2.4.0 emits metadata 2.4.0, so Hilt fails to read the classes.
+// The reader sits on the (non-shaded) classpath, so force it to match the Kotlin version.
+// Remove once Hilt ships a release that bundles kotlin-metadata-jvm >= 2.3.0.
+configurations.configureEach {
+    resolutionStrategy {
+        force("org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.0")
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
