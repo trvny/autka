@@ -95,9 +95,9 @@ object MarketplaceSearchLinks {
         FuelType.PETROL -> "petrol"
         FuelType.DIESEL -> "diesel"
         FuelType.LPG -> "petrol-lpg"          // verified (NB: petrol-lpg, not lpg-petrol)
-        FuelType.HYBRID -> "hybrid"           // TODO(verify) slug
-        FuelType.PLUGIN_HYBRID -> "plugin-hybrid" // TODO(verify) slug
-        FuelType.ELECTRIC -> "electric"       // TODO(verify) slug
+        FuelType.HYBRID -> "hybrid"           // verified (live indexed otomoto.pl URL)
+        FuelType.PLUGIN_HYBRID -> "plugin-hybrid" // verified (live indexed otomoto.pl URL)
+        FuelType.ELECTRIC -> "electric"       // verified (live indexed otomoto.pl URL)
         else -> null
     }
 
@@ -123,7 +123,7 @@ object MarketplaceSearchLinks {
         f.maxPrice?.let { q["search[filter_float_price:to]"] = it.toLong().toString() }   // verified
         f.minYear?.let { q["search[filter_float_year:from]"] = it.toString() }            // same scheme
         f.maxYear?.let { q["search[filter_float_year:to]"] = it.toString() }              // same scheme
-        f.maxMileageKm?.let { q["search[filter_float_mileage:to]"] = it.toString() }      // TODO(verify) attr name
+        f.maxMileageKm?.let { q["search[filter_float_milage:to]"] = it.toString() }       // verified (OLX param is "milage", missing 2nd 'e')
         return path + q.render()
     }
 
@@ -179,18 +179,23 @@ object MarketplaceSearchLinks {
         f.minYear?.let { q["fregfrom"] = it.toString() }
         f.maxYear?.let { q["fregto"] = it.toString() }
         f.maxMileageKm?.let { q["kmto"] = it.toString() }
-        autoScoutFuel(f.fuelTypes.firstOrNull())?.let { q["fuel"] = it } // TODO(verify) fuel codes
+        autoScoutFuel(f.fuelTypes.firstOrNull())?.let { q["fuel"] = it } // fuel codes verified
         q["sort"] = autoScoutSort(f.sort)
         q["desc"] = if (f.sort == SortOrder.PRICE_DESC || f.sort == SortOrder.YEAR_DESC) "1" else "0"
         if (f.make == null) terms(f).takeIf { it.isNotEmpty() }?.let { q["search"] = it } // TODO(verify) free-text key
         return path + q.render()
     }
 
-    private fun autoScoutFuel(t: FuelType?): String? = when (t) { // TODO(verify): AS24 fuel codes (e.g. B=petrol, D=diesel)
+    // AS24 fuel codes verified: B=petrol, D=diesel, E=electric, L=LPG, C=CNG,
+    // 2=petrol/electric hybrid, 3=diesel/electric hybrid. AS24 has no dedicated
+    // plug-in code, so plug-in (petrol-based) maps to 2 alongside full hybrids.
+    private fun autoScoutFuel(t: FuelType?): String? = when (t) {
         FuelType.PETROL -> "B"
         FuelType.DIESEL -> "D"
         FuelType.ELECTRIC -> "E"
         FuelType.LPG -> "L"
+        FuelType.HYBRID -> "2"
+        FuelType.PLUGIN_HYBRID -> "2"
         else -> null
     }
 
