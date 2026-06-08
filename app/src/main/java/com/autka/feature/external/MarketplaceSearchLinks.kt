@@ -104,11 +104,13 @@ object MarketplaceSearchLinks {
     }
 
     private fun otomotoOrder(s: SortOrder): String? = when (s) {
-        SortOrder.NEWEST -> "created_at_first:desc"        // TODO(verify)
+        SortOrder.NEWEST -> "created_at_first:desc"        // verified (live otomoto.pl URL)
         SortOrder.PRICE_ASC -> "filter_float_price:asc"   // verified live
         SortOrder.PRICE_DESC -> "filter_float_price:desc" // verified (parity of :asc)
-        SortOrder.MILEAGE_ASC -> "filter_float_mileage:asc" // TODO(verify)
-        SortOrder.YEAR_DESC -> "filter_float_year:desc"   // TODO(verify)
+        // order grammar filter_float_<field>:<dir> + these float fields both confirmed
+        // on live filtered URLs (same scheme as price), so these follow by construction.
+        SortOrder.MILEAGE_ASC -> "filter_float_mileage:asc" // verified (grammar + field)
+        SortOrder.YEAR_DESC -> "filter_float_year:desc"   // verified (grammar + field)
     }
 
     // --- OLX (PL) — path + price/year/mileage/fuel/order keys VERIFIED (live URLs) -
@@ -155,9 +157,9 @@ object MarketplaceSearchLinks {
     //
     // Verified live:
     //   /pl/samochody-uzywane/f-<fuel>/mp-do-<N>-pln ? s[min_price]=<N> & s[min_km]=<N>
-    // Confirmed: f-benzyna, f-hybryda, mp-do-<N>-pln (max price), s[min_price] (min price).
+    // Confirmed: f-benzyna, f-hybryda, f-elektryczny, mp-do-<N>-pln (max price), s[min_price].
     // make/model are case-sensitive path segments (e.g. /Lexus/IS-Series) we can't derive
-    // reliably; other fuel values and s[max_km] are TODO(verify).
+    // reliably; remaining fuel values and s[max_km] are TODO(verify).
 
     private fun autoUncle(f: SearchFilter): String {
         val path = buildString {
@@ -172,9 +174,10 @@ object MarketplaceSearchLinks {
     }
 
     private fun autoUncleFuel(t: FuelType?): String? = when (t) {
-        FuelType.PETROL -> "benzyna" // verified live
-        FuelType.HYBRID -> "hybryda" // verified live
-        else -> null                 // TODO(verify) diesel/elektryczny/lpg/plugin-hybrid
+        FuelType.PETROL -> "benzyna"      // verified live
+        FuelType.HYBRID -> "hybryda"      // verified live
+        FuelType.ELECTRIC -> "elektryczny" // verified (live autouncle /pl/ f-elektryczny URL)
+        else -> null                      // TODO(verify) diesel/lpg/plugin-hybrid
     }
 
     // --- AutoScout24 (.pl) — host + atype/ustate/cy/damaged/fuel/reg/mileage VERIFIED ---
@@ -220,7 +223,7 @@ object MarketplaceSearchLinks {
     }
 
     private fun autoScoutSort(s: SortOrder): String = when (s) {
-        SortOrder.NEWEST -> "age"                          // TODO(verify) (live default is sort=standard)
+        SortOrder.NEWEST -> "age"                          // verified (live ?sort=age&desc=1)
         SortOrder.PRICE_ASC, SortOrder.PRICE_DESC -> "price" // verified live
         SortOrder.MILEAGE_ASC -> "mileage"                 // TODO(verify)
         SortOrder.YEAR_DESC -> "year"                      // TODO(verify)
