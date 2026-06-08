@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.autka"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.autka"
