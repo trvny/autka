@@ -56,6 +56,7 @@ class OfferDetailViewModel @Inject constructor(
                         vehiclePriceUsd = offer.price.amount,
                         shippingUsd = shipping,
                         engineCapacityCc = engineCc,
+                        fuelType = offer.fuelType,
                     ),
                     displayCurrency = currency,
                     exchangeRates = rates,
