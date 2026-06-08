@@ -91,6 +91,8 @@ object MarketplaceSearchLinks {
         return path + q.render()
     }
 
+    // Naspers (Otomoto / OLX Group) fuel vocabulary. All slugs verified against live
+    // indexed otomoto.pl URLs.
     private fun otomotoFuel(t: FuelType?): String? = when (t) {
         FuelType.PETROL -> "petrol"
         FuelType.DIESEL -> "diesel"
@@ -109,8 +111,8 @@ object MarketplaceSearchLinks {
         SortOrder.YEAR_DESC -> "filter_float_year:desc"
     }
 
-    // --- OLX (PL) — path + price keys VERIFIED (search[filter_float_price:to] seen live) -
-    // Same Naspers filter scheme as Otomoto. Location is a path segment
+    // --- OLX (PL) — path + price + mileage + fuel keys VERIFIED (seen on live URLs) -
+    // Same OLX Group filter scheme as Otomoto. Location is a path segment
     // (/samochody/<city>/), which we don't set (no location field in SearchFilter).
 
     private fun olx(f: SearchFilter): String {
@@ -124,6 +126,12 @@ object MarketplaceSearchLinks {
         f.minYear?.let { q["search[filter_float_year:from]"] = it.toString() }            // same scheme
         f.maxYear?.let { q["search[filter_float_year:to]"] = it.toString() }              // same scheme
         f.maxMileageKm?.let { q["search[filter_float_milage:to]"] = it.toString() }       // verified (OLX param is "milage", missing 2nd 'e')
+        // OLX fuel facet key is the legacy "filter_enum_petrol" (value "petrol" seen live).
+        // OLX Group shares Otomoto's fuel vocabulary, so values are reused; only "petrol"
+        // is confirmed live for OLX, the rest follow Naspers parity. TODO(verify) non-petrol.
+        f.fuelTypes.mapNotNull(::otomotoFuel).forEachIndexed { i, v ->
+            q["search[filter_enum_petrol][$i]"] = v
+        }
         return path + q.render()
     }
 
@@ -135,8 +143,8 @@ object MarketplaceSearchLinks {
     private fun facebook(f: SearchFilter): String {
         val q = Params()
         terms(f).takeIf { it.isNotEmpty() }?.let { q["query"] = it }
-        f.minPrice?.let { q["minPrice"] = it.toLong().toString() } // TODO(verify)
-        f.maxPrice?.let { q["maxPrice"] = it.toLong().toString() } // TODO(verify)
+        f.minPrice?.let { q["minPrice"] = it.toLong().toString() } // FB minPrice/maxPrice pair (maxPrice verified live)
+        f.maxPrice?.let { q["maxPrice"] = it.toLong().toString() } // verified (live FB marketplace URL)
         return "https://www.facebook.com/marketplace/category/vehicles" + q.render()
     }
 
@@ -159,7 +167,7 @@ object MarketplaceSearchLinks {
         return "https://www.autouncle.pl/pl/samochody-uzywane" + q.render()
     }
 
-    // --- AutoScout24 (.pl) — host + atype/ustate/cy/damaged VERIFIED from a live URL -
+    // --- AutoScout24 (.pl) — host + atype/ustate/cy/damaged/fuel VERIFIED from live URLs -
     // price/reg/mileage keys (pricefrom/priceto/fregfrom/fregto/kmto) are AS24's
     // long-standing params. cy scopes to common EU export markets (from the live URL).
 
@@ -179,7 +187,9 @@ object MarketplaceSearchLinks {
         f.minYear?.let { q["fregfrom"] = it.toString() }
         f.maxYear?.let { q["fregto"] = it.toString() }
         f.maxMileageKm?.let { q["kmto"] = it.toString() }
-        autoScoutFuel(f.fuelTypes.firstOrNull())?.let { q["fuel"] = it } // fuel codes verified
+        // fuel accepts a comma-joined list of codes (verified live: fuel=2,B,O).
+        f.fuelTypes.mapNotNull(::autoScoutFuel).distinct().takeIf { it.isNotEmpty() }
+            ?.let { q["fuel"] = it.joinToString(",") }
         q["sort"] = autoScoutSort(f.sort)
         q["desc"] = if (f.sort == SortOrder.PRICE_DESC || f.sort == SortOrder.YEAR_DESC) "1" else "0"
         if (f.make == null) terms(f).takeIf { it.isNotEmpty() }?.let { q["search"] = it } // TODO(verify) free-text key
@@ -199,7 +209,7 @@ object MarketplaceSearchLinks {
         else -> null
     }
 
-    private fun autoScoutSort(s: SortOrder): String = when (s) { // TODO(verify) tokens
+    private fun autoScoutSort(s: SortOrder): String = when (s) { // TODO(verify) tokens (live default seen: sort=standard)
         SortOrder.NEWEST -> "age"
         SortOrder.PRICE_ASC, SortOrder.PRICE_DESC -> "price"
         SortOrder.MILEAGE_ASC -> "mileage"
@@ -224,16 +234,29 @@ object MarketplaceSearchLinks {
         return "https://suchen.mobile.de/fahrzeuge/search.html" + q.render()
     }
 
-    // --- Autoplac (PL classifieds) — host confirmed; path/keys TODO(verify) --
-    // Free-ad PL marketplace. Bot-protected, so the search path couldn't be confirmed
-    // live; treat the query shape below as a placeholder until checked in a browser.
+    // --- Autoplac (PL classifieds) — path + query keys VERIFIED from live URLs -------
+    // Path-based price ("cena-do-<N>-tysiecy", N in thousands); fuel/mileage/year via
+    // query. fuelTypes is a comma-joined list of GASOLINE/DIESEL/HYBRID (verified);
+    // other fuel values TODO(verify). The "zagraniczne" path segment scopes to imported
+    // cars — useful later for the import axis, but there's no SearchFilter flag for it yet.
 
     private fun autoplac(f: SearchFilter): String {
+        val path = buildString {
+            append("https://autoplac.pl/oferty/samochody-osobowe")
+            f.maxPrice?.let { append("/cena-do-").append(it.toLong() / 1000).append("-tysiecy") }
+        }
         val q = Params()
-        terms(f).takeIf { it.isNotEmpty() }?.let { q["q"] = it }      // TODO(verify) search param + path
-        f.minPrice?.let { q["price_from"] = it.toLong().toString() } // TODO(verify)
-        f.maxPrice?.let { q["price_to"] = it.toLong().toString() }   // TODO(verify)
-        return "https://autoplac.pl/ogloszenia/samochody-osobowe" + q.render()
+        f.fuelTypes.mapNotNull(::autoplacFuel).takeIf { it.isNotEmpty() }?.let { q["fuelTypes"] = it.joinToString(",") }
+        f.minYear?.let { q["yearFrom"] = it.toString() }
+        f.maxMileageKm?.let { q["mileageTo"] = it.toString() }
+        return path + q.render()
+    }
+
+    private fun autoplacFuel(t: FuelType?): String? = when (t) { // GASOLINE/DIESEL/HYBRID verified; rest TODO(verify)
+        FuelType.PETROL -> "GASOLINE"
+        FuelType.DIESEL -> "DIESEL"
+        FuelType.HYBRID -> "HYBRID"
+        else -> null
     }
 
     // --- US auctions (import sourcing) — keyword search ----------------------
@@ -254,16 +277,19 @@ object MarketplaceSearchLinks {
         return "https://www.copart.com/lotSearchResults" + q.render()
     }
 
-    private fun iaai(f: SearchFilter): String =
-        "https://www.iaai.com/Search" +
-            Params().apply { terms(f).takeIf { it.isNotEmpty() }?.let { this["searchKeyword"] = it } }.render() // TODO(verify)
+    // IAAI's search state is an opaque encrypted "url" token (/Search?url=<base64>), not
+    // readable query params — filters can't be deep-linked, so we land on the search page
+    // and the user filters there. (Verified: live IAAI search URLs carry only ?url=<blob>.)
+    private fun iaai(@Suppress("UNUSED_PARAMETER") f: SearchFilter): String =
+        "https://www.iaai.com/Search"
 
     private fun carsCom(f: SearchFilter): String {
         val q = Params()
-        f.make?.let { q["makes[]"] = slug(it) }       // TODO(verify)
-        f.model?.let { q["models[]"] = slug(it) }     // TODO(verify)
-        f.maxPrice?.let { q["maximum_price"] = it.toLong().toString() } // TODO(verify)
-        f.minYear?.let { q["year_min"] = it.toString() }               // TODO(verify)
+        f.make?.let { q["makes[]"] = slug(it) }                              // verified
+        // models[] is a make-prefixed slug, e.g. nissan-rogue (verified live).
+        f.model?.let { m -> q["models[]"] = listOfNotNull(f.make?.let(::slug), slug(m)).joinToString("-") }
+        f.maxPrice?.let { q["maximum_price"] = it.toLong().toString() }      // TODO(verify)
+        f.minYear?.let { q["year_min"] = it.toString() }                     // TODO(verify)
         q["stock_type"] = "used"
         return "https://www.cars.com/shopping/results/" + q.render()
     }
