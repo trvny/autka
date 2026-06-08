@@ -122,7 +122,8 @@ class ImportCostCalculatorTest {
         assertEquals(3_200.0, e.customsDuty.amount, delta)
         // vat = (30000 + 2000 + 3200 + 0) * 0.23
         assertEquals(8_096.0, e.vat.amount, delta)
-        assertEquals(45_296.0, e.total.amount, delta)
+        // total = 30000 + 2000 + 3200 + 0 + 8096
+        assertEquals(43_296.0, e.total.amount, delta)
     }
 
     @Test
