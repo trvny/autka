@@ -157,9 +157,9 @@ object MarketplaceSearchLinks {
     //
     // Verified live:
     //   /pl/samochody-uzywane/f-<fuel>/mp-do-<N>-pln ? s[min_price]=<N> & s[min_km]=<N>
-    // Confirmed: f-benzyna, f-hybryda, f-elektryczny, mp-do-<N>-pln (max price), s[min_price],
-    // s[max_km] (max mileage). make/model are case-sensitive path segments (e.g. /Lexus/IS-Series)
-    // we can't derive reliably; remaining fuel values (diesel/lpg/plug-in) are TODO(verify).
+    // Confirmed: f-benzyna, f-diesel, f-hybryda, f-elektryczny, mp-do-<N>-pln (max price),
+    // s[min_price], s[max_km] (max mileage). make/model are case-sensitive path segments
+    // (e.g. /Lexus/IS-Series) we can't derive reliably; lpg/plug-in fuel values TODO(verify).
 
     private fun autoUncle(f: SearchFilter): String {
         val path = buildString {
@@ -175,9 +175,10 @@ object MarketplaceSearchLinks {
 
     private fun autoUncleFuel(t: FuelType?): String? = when (t) {
         FuelType.PETROL -> "benzyna"      // verified live
+        FuelType.DIESEL -> "diesel"       // verified live (f-diesel)
         FuelType.HYBRID -> "hybryda"      // verified live
         FuelType.ELECTRIC -> "elektryczny" // verified (live autouncle /pl/ f-elektryczny URL)
-        else -> null                      // TODO(verify) diesel/lpg/plugin-hybrid
+        else -> null                      // TODO(verify) lpg/plugin-hybrid
     }
 
     // --- AutoScout24 (.pl) — host + atype/ustate/cy/damaged/fuel/reg/mileage/sort/kwd VERIFIED ---
@@ -275,9 +276,9 @@ object MarketplaceSearchLinks {
     }
 
     // --- AutoTrader.pl (PL classifieds) — host + paliwo/cena/rok/przebieg VERIFIED ----
-    // SEPARATE site from autotrader.com (US) below. Fuel values benzyna/diesel/elektryczny
-    // and the cena_od_pln/cena_do_pln price band, rok_od/rok_do year band, and przebieg_do
-    // (max mileage) all confirmed against live filtered URLs. lpg/plug-in still TODO(verify).
+    // SEPARATE site from autotrader.com (US) below. Fuel values benzyna/diesel/elektryczny/
+    // hybrydowy and the cena_od_pln/cena_do_pln price band, rok_od/rok_do year band, and
+    // przebieg_do (max mileage) all confirmed against live filtered URLs. lpg/plug-in TODO.
 
     private fun autoTraderPl(f: SearchFilter): String {
         val q = Params()
@@ -294,7 +295,7 @@ object MarketplaceSearchLinks {
         FuelType.PETROL -> "benzyna"        // verified live
         FuelType.DIESEL -> "diesel"         // verified live
         FuelType.ELECTRIC -> "elektryczny"  // verified live
-        FuelType.HYBRID -> "hybrydowy"      // verified (NB: hybrydowy, NOT hybryda)
+        FuelType.HYBRID -> "hybrydowy"      // verified live (NB: hybrydowy, NOT hybryda)
         else -> null                        // TODO(verify) lpg / plugin-hybrid
     }
 
