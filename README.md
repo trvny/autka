@@ -4,10 +4,9 @@ An Android app that aggregates used-car offers from multiple marketplaces across
 **Poland, the rest of Europe, and US import sources** into one searchable list, with
 landed-cost estimation for vehicles imported from the USA.
 
-> Formerly **Autka**. Autka is retained as a secondary brand: a launchable
-> Android `activity-alias` (label "Autka") and the internal code identity
-> (package `com.autka`, `Autka*` classes). Only the user-facing name and the
-> Gradle project name changed to Autka.
+> Formerly **CarGate**. The user-facing name and Gradle project are now **Autka**;
+> the code identity is unchanged (package `com.autka`). The backend keeps the original
+> resource names (`cargate-backend` Worker, `cargate-offers` D1, `cargate-images` R2).
 
 ## Repository layout
 
@@ -33,7 +32,8 @@ source**, so you can see the full flow (search -> filter -> list -> detail -> im
 cost breakdown) immediately. Filtering by make, price, year, mileage, fuel, region,
 source and sort order is wired end-to-end (live local filtering over the cache plus a
 network refresh), with multi-currency conversion so PLN/EUR/USD offers compare and sort
-correctly. Real marketplace adapters are present as documented stubs.
+correctly. Live marketplace data comes from the backend (compliant feeds) and from
+deep-links into each site's own search; see **Data sourcing** below.
 
 ## Architecture
 
@@ -43,7 +43,7 @@ Jetpack Compose, Hilt DI, Room (offline-first), Kotlin Flow.
 ```
 core/model        Normalized domain model (CarOffer, Money, SearchFilter, ImportCostEstimate)
 data/local        Room database, DAO, entity + mappers (local cache = source of truth)
-data/remote       CarOfferSource adapter interface + one adapter per marketplace
+data/remote       CarOfferSource interface; BackendCarOfferSource (live) + MockCarOfferSource (demo)
 data/repository   OfflineFirstCarOfferRepository: fans queries to all sources, merges, caches
 feature/listings  Search + results screen (ViewModel + Compose)
 feature/detail    Offer detail + US import cost breakdown
@@ -51,32 +51,39 @@ di                Hilt modules (database, repository, sources multibinding)
 ui                Theme, navigation host, shared components
 ```
 
-The key design point: **every marketplace is a `CarOfferSource` adapter** contributed
-into a multibound `Set` in `di/SourcesModule.kt`. Adding a marketplace is one `@Binds
-@IntoSet` line; the repository merges whatever is enabled. A source failing (network,
-auth) is isolated so the others still return.
+The key design point: the app consumes **one** `BackendCarOfferSource` (plus the demo
+`MockCarOfferSource`), both contributed into a multibound `Set` in `di/SourcesModule.kt`;
+the repository merges whatever is enabled and isolates a failing source so the others
+still return. Per-marketplace aggregation happens **server-side** in the backend's
+`ALL_SOURCES`, not on the device — adding a marketplace is a new ingest adapter +
+`runner.ts` registration, not an app change.
 
 ## Data sourcing — read this
 
 The app's architecture is the easy part; lawfully obtaining listing data is the real
-work, and it's your responsibility. Summary of each adapter's status:
+work. **Autka does not scrape.** Listing data is handled in two layers (see
+`docs/INTEGRATION.md` for the full design):
 
-| Source | Adapter | Status | Notes |
-|--------|---------|--------|-------|
-| Sample | `MockCarOfferSource` | Enabled | Built-in demo data, zero config |
-| Otomoto | `OtomotoCarOfferSource` | Stub (disabled) | OLX Group; no open public API. Needs a partner/dealer-feed agreement or licensed data. Scraping restricted by ToS. |
-| OLX | `OlxCarOfferSource` | Stub (disabled) | Partner/affiliate API under agreement only. |
-| Facebook Marketplace | `FacebookMarketplaceSource` | Disabled by design | Meta ToS prohibits scraping; no listings API. Consider deep-linking the user into a pre-filled Marketplace search instead of ingesting. |
-| US auctions (import) | `UsAuctionCarOfferSource` | Stub (disabled) | Copart/IAAI etc. require membership or a licensed broker API. |
+1. **Compliant feeds → backend.** The Cloudflare Worker (`/backend`) ingests whatever
+   licensed/partner feeds are available, normalizes them to `CarOffer`, caches them in
+   D1, and serves `GET /offers`. Each adapter lives in `backend/src/ingest/sources/`
+   and is registered in `runner.ts`'s `ALL_SOURCES`, with per-source failure isolation.
+   The app reads this through a single `BackendCarOfferSource` (plus a built-in
+   `MockCarOfferSource` for the demo flow).
+2. **No-feed sources → deep-links.** For marketplaces that prohibit ingestion or expose
+   no feed (Otomoto, OLX, Facebook, Autoplac, AutoTrader.pl, AutoScout24, mobile.de,
+   AutoUncle, and US auction/retail sites — Copart, IAAI, Cars.com, AutoTrader US), the
+   app sends the user into that site's **own pre-filled search** via
+   `feature/external/MarketplaceSearchLinks.kt`. This is client-only UX: deep-links
+   never touch the backend and are never `CarOfferSource`s.
 
-The realistic production shape is a **backend** that holds the compliant feeds,
-normalizes them, and serves one clean API the app consumes — not direct scraping from
-the device. The adapter interface is designed so each adapter can simply call your
-backend endpoint for that source.
+URL parameter vocabularies for the deep-link providers are verified against live URLs
+where possible; unverified parameters are marked `TODO(verify)` in source and tracked
+in `TODO.md`.
 
 ## US import cost
 
-`core/model/ImportCostCalculator.kt` estimates landed cost into Poland (shipping +
+`core/model/ImportCostEstimate.kt` estimates landed cost into Poland (shipping +
 EU customs duty + PL excise/akcyza + 23% VAT). The excise rate is drivetrain- and
 capacity-aware (2026 akcyza table); duty, VAT and the default shipping figure are still
 indicative constants — verify them before relying on the numbers. The detail screen
@@ -137,7 +144,15 @@ then runs `lintDebug assembleDebug testDebugUnitTest`. The debug APK and lint re
 uploaded as build artifacts. The `testDebugUnitTest` step runs the JVM unit tests under
 `app/src/test` (import-cost calculator and listings filtering/sorting).
 
-`.github/dependabot.yml` opens weekly PRs for both Gradle/Kotlin dependencies (via the version catalog) and the workflow's GitHub Actions, grouped so related bumps arrive together. CI builds each PR, so you review a green check rather than re-auditing versions by hand.
+`.github/workflows/backend-ci.yml` covers the Worker (`/backend`): typecheck, `vitest`,
+and a `wrangler deploy --dry-run`. `worker-configuration.d.ts` is generated in CI, not
+committed. `.github/workflows/release.yml` builds a signed APK + AAB and cuts a GitHub
+release on a version tag (see `docs/RELEASING.md`).
+
+`.github/dependabot.yml` opens weekly PRs for both Gradle/Kotlin dependencies (via the
+version catalog) and the workflow's GitHub Actions, grouped so related bumps arrive
+together. CI builds each PR, so you review a green check rather than re-auditing
+versions by hand. `dependency-submission.yml` feeds the dependency graph for alerts.
 
 ## Versions
 
