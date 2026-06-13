@@ -4,6 +4,7 @@ import com.autka.core.model.FuelType
 import com.autka.core.model.Region
 import com.autka.core.model.SearchFilter
 import com.autka.core.model.SortOrder
+import com.autka.core.model.Transmission
 import java.util.Locale
 
 /**
@@ -113,6 +114,14 @@ object MarketplaceSearchLinks {
         SortOrder.YEAR_DESC -> "filter_float_year:desc"   // verified (grammar + field)
     }
 
+    // OLX Group transmission facet values. automatic verified live (OLX
+    // filter_enum_transmission); manual by parity with the Naspers vocabulary.
+    private fun naspersTransmission(t: Transmission?): String? = when (t) {
+        Transmission.AUTOMATIC -> "automatic" // verified live
+        Transmission.MANUAL -> "manual"       // by parity — TODO(verify)
+        else -> null
+    }
+
     // --- OLX (PL) — path + price/year/mileage/fuel/order keys VERIFIED (live URLs) -
     // Same OLX Group filter scheme as Otomoto. Location is a path segment
     // (/samochody/<city>/), which we don't set (no location field in SearchFilter).
@@ -132,6 +141,10 @@ object MarketplaceSearchLinks {
         // vocabulary (petrol and plugin-hybrid confirmed live, rest by parity).
         f.fuelTypes.mapNotNull(::otomotoFuel).forEachIndexed { i, v ->
             q["search[filter_enum_petrol][$i]"] = v
+        }
+        // Transmission facet (filter_enum_transmission): automatic confirmed live.
+        f.transmissions.mapNotNull(::naspersTransmission).forEachIndexed { i, v ->
+            q["search[filter_enum_transmission][$i]"] = v
         }
         otomotoOrder(f.sort)?.let { q["search[order]"] = it } // verified (filter_float_price:asc live)
         return path + q.render()
@@ -283,12 +296,18 @@ object MarketplaceSearchLinks {
     private fun autoTraderPl(f: SearchFilter): String {
         val q = Params()
         f.fuelTypes.firstNotNullOfOrNull(::autoTraderPlFuel)?.let { q["rodzaj_paliwa"] = it }
+        f.transmissions.firstNotNullOfOrNull(::autoTraderPlTransmission)?.let { q["skrzynia_biegow"] = it }
         f.minPrice?.let { q["cena_od_pln"] = it.toLong().toString() } // verified
         f.maxPrice?.let { q["cena_do_pln"] = it.toLong().toString() } // verified
         f.minYear?.let { q["rok_od"] = it.toString() }                // verified
         f.maxYear?.let { q["rok_do"] = it.toString() }                // verified
         f.maxMileageKm?.let { q["przebieg_do"] = it.toString() }      // verified live
         return "https://www.autotrader.pl/szukaj/osobowe" + q.render()
+    }
+
+    private fun autoTraderPlTransmission(t: Transmission?): String? = when (t) {
+        Transmission.AUTOMATIC -> "automatyczna" // verified live (?skrzynia_biegow=automatyczna)
+        else -> null                             // TODO(verify) manual (likely "manualna")
     }
 
     private fun autoTraderPlFuel(t: FuelType?): String? = when (t) {

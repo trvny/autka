@@ -32,6 +32,7 @@ fun List<CarOffer>.applyFilter(
         (f.maxYear == null || (o.year ?: Int.MAX_VALUE) <= f.maxYear) &&
         (f.maxMileageKm == null || (o.mileageKm ?: Int.MAX_VALUE) <= f.maxMileageKm) &&
         (f.fuelTypes.isEmpty() || o.fuelType in f.fuelTypes) &&
+        (f.transmissions.isEmpty() || o.transmission in f.transmissions) &&
         (o.region in f.regions) &&
         (f.sourceIds.isEmpty() || o.sourceId in f.sourceIds)
 }
@@ -59,6 +60,7 @@ fun SearchFilter.activeCount(): Int {
     if (maxYear != null) n++
     if (maxMileageKm != null) n++
     if (fuelTypes.isNotEmpty()) n++
+    if (transmissions.isNotEmpty()) n++
     if (regions.size != Region.entries.size) n++
     if (sourceIds.isNotEmpty()) n++
     if (sort != SortOrder.NEWEST) n++

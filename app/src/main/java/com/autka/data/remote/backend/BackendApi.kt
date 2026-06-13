@@ -23,6 +23,7 @@ interface BackendApi {
         @Query("maxYear") maxYear: Int? = null,
         @Query("maxMileageKm") maxMileageKm: Int? = null,
         @Query("fuelTypes") fuelTypes: String? = null, // comma-joined
+        @Query("transmissions") transmissions: String? = null, // comma-joined
         @Query("regions") regions: String? = null,     // comma-joined
         @Query("sources") sources: String? = null,     // comma-joined
         @Query("sort") sort: String? = null,

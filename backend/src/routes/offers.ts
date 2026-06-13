@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { SearchFilter, FuelType, Region } from "../lib/types";
+import type { SearchFilter, FuelType, Transmission, Region } from "../lib/types";
 import { queryOffers, getOffer } from "../db/offers";
 import { ALL_SOURCES } from "../ingest/runner";
 
@@ -10,6 +10,7 @@ const FUEL_TYPES: readonly FuelType[] = [
   "PETROL", "DIESEL", "HYBRID", "PLUGIN_HYBRID", "ELECTRIC", "LPG", "OTHER", "UNKNOWN",
 ];
 const REGIONS: readonly Region[] = ["POLAND", "EUROPE", "USA"];
+const TRANSMISSIONS: readonly Transmission[] = ["MANUAL", "AUTOMATIC", "UNKNOWN"];
 const SORTS: readonly NonNullable<SearchFilter["sort"]>[] = [
   "NEWEST", "PRICE_ASC", "PRICE_DESC", "MILEAGE_ASC", "YEAR_DESC",
 ];
@@ -36,6 +37,7 @@ offersRouter.get("/offers", async (c) => {
     maxYear: num(q.maxYear),
     maxMileageKm: num(q.maxMileageKm),
     fuelTypes: subset(q.fuelTypes, FUEL_TYPES),
+    transmissions: subset(q.transmissions, TRANSMISSIONS),
     regions: subset(q.regions, REGIONS),
     sourceIds: list(q.sources),
     sort: (SORTS as readonly string[]).includes(sortRaw) ? (sortRaw as SearchFilter["sort"]) : "NEWEST",

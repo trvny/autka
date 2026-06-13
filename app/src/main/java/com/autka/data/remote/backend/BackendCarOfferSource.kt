@@ -29,6 +29,7 @@ class BackendCarOfferSource @Inject constructor(
             maxYear = filter.maxYear,
             maxMileageKm = filter.maxMileageKm,
             fuelTypes = filter.fuelTypes.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
+            transmissions = filter.transmissions.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
             regions = filter.regions.joinToString(",") { it.name },
             sources = filter.sourceIds.takeIf { it.isNotEmpty() }?.joinToString(","),
             sort = filter.sort.name,

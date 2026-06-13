@@ -52,6 +52,7 @@ export interface SearchFilter {
   maxYear?: number;
   maxMileageKm?: number;
   fuelTypes?: FuelType[];
+  transmissions?: Transmission[];
   regions?: Region[];
   sourceIds?: string[];
   sort?: "NEWEST" | "PRICE_ASC" | "PRICE_DESC" | "MILEAGE_ASC" | "YEAR_DESC";

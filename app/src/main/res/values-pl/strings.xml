@@ -54,6 +54,8 @@
     <string name="fuel_lpg">LPG</string>
     <string name="fuel_other">Inne</string>
     <string name="fuel_unknown">Nieznane</string>
+    <string name="trans_manual">Manualna</string>
+    <string name="trans_automatic">Automatyczna</string>
 
     <!-- Regions -->
     <string name="region_poland">Polska</string>

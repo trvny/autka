@@ -59,6 +59,22 @@ describe("backend", () => {
     expect((await lpg.json() as { count: number }).count).toBe(0);
   });
 
+  it("filters by transmission", async () => {
+    const auto = await call("/offers?transmissions=AUTOMATIC");
+    const body = await auto.json() as { offers: { transmission: string }[]; count: number };
+    expect(body.count).toBeGreaterThan(0);
+    expect(body.offers.every((o) => o.transmission === "AUTOMATIC")).toBe(true);
+
+    // Mock data has no manual cars, so this is empty (filter is applied, not ignored).
+    const manual = await call("/offers?transmissions=MANUAL");
+    expect((await manual.json() as { count: number }).count).toBe(0);
+
+    // Invalid value is dropped, not asserted -> all results.
+    const bad = await call("/offers?transmissions=NOPE");
+    expect(bad.status).toBe(200);
+    expect((await bad.json() as { count: number }).count).toBeGreaterThan(0);
+  });
+
   it("tolerates invalid sort/enum params (validate, don't assert)", async () => {
     const badSort = await call("/offers?sort=garbage");
     expect(badSort.status).toBe(200);

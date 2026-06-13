@@ -91,6 +91,10 @@ function buildWhere(f: SearchFilter): { where: string[]; binds: unknown[] } {
     where.push(`fuel_type IN (${f.fuelTypes.map(() => "?").join(",")})`);
     binds.push(...f.fuelTypes);
   }
+  if (f.transmissions?.length) {
+    where.push(`transmission IN (${f.transmissions.map(() => "?").join(",")})`);
+    binds.push(...f.transmissions);
+  }
   if (f.regions?.length) {
     where.push(`region IN (${f.regions.map(() => "?").join(",")})`);
     binds.push(...f.regions);

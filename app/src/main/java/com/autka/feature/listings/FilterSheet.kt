@@ -35,12 +35,15 @@ import com.autka.core.model.FuelType
 import com.autka.core.model.Region
 import com.autka.core.model.SearchFilter
 import com.autka.core.model.SortOrder
+import com.autka.core.model.Transmission
 import com.autka.data.repository.SourceInfo
 
 private val FUEL_CHOICES = listOf(
     FuelType.PETROL, FuelType.DIESEL, FuelType.HYBRID,
     FuelType.PLUGIN_HYBRID, FuelType.ELECTRIC, FuelType.LPG,
 )
+
+private val TRANSMISSION_CHOICES = listOf(Transmission.MANUAL, Transmission.AUTOMATIC)
 
 private const val MIN_YEAR = 1990f
 private const val MAX_YEAR = 2026f
@@ -148,6 +151,24 @@ fun FilterSheet(
                 }
             }
 
+            Section(stringResource(R.string.spec_transmission)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TRANSMISSION_CHOICES.forEach { tx ->
+                        FilterChip(
+                            selected = tx in draft.transmissions,
+                            onClick = {
+                                draft = draft.copy(
+                                    transmissions = draft.transmissions.toMutableSet().apply {
+                                        if (!add(tx)) remove(tx)
+                                    },
+                                )
+                            },
+                            label = { Text(tx.label()) },
+                        )
+                    }
+                }
+            }
+
             Section(stringResource(R.string.filter_region)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Region.entries.forEach { region ->
@@ -231,6 +252,13 @@ private fun FuelType.label() = when (this) {
     FuelType.LPG -> stringResource(R.string.fuel_lpg)
     FuelType.OTHER -> stringResource(R.string.fuel_other)
     FuelType.UNKNOWN -> stringResource(R.string.fuel_unknown)
+}
+
+@Composable
+private fun Transmission.label() = when (this) {
+    Transmission.MANUAL -> stringResource(R.string.trans_manual)
+    Transmission.AUTOMATIC -> stringResource(R.string.trans_automatic)
+    Transmission.UNKNOWN -> stringResource(R.string.fuel_unknown)
 }
 
 @Composable

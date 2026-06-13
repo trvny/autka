@@ -11,6 +11,7 @@ data class SearchFilter(
     val maxYear: Int? = null,
     val maxMileageKm: Int? = null,
     val fuelTypes: Set<FuelType> = emptySet(),
+    val transmissions: Set<Transmission> = emptySet(),
     val regions: Set<Region> = Region.entries.toSet(),
     val sourceIds: Set<String> = emptySet(), // empty = all enabled sources
     val sort: SortOrder = SortOrder.NEWEST,
