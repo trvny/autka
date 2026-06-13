@@ -157,9 +157,9 @@ object MarketplaceSearchLinks {
     //
     // Verified live:
     //   /pl/samochody-uzywane/f-<fuel>/mp-do-<N>-pln ? s[min_price]=<N> & s[min_km]=<N>
-    // Confirmed: f-benzyna, f-hybryda, f-elektryczny, mp-do-<N>-pln (max price), s[min_price].
-    // make/model are case-sensitive path segments (e.g. /Lexus/IS-Series) we can't derive
-    // reliably; remaining fuel values and s[max_km] are TODO(verify).
+    // Confirmed: f-benzyna, f-hybryda, f-elektryczny, mp-do-<N>-pln (max price), s[min_price],
+    // s[max_km] (max mileage). make/model are case-sensitive path segments (e.g. /Lexus/IS-Series)
+    // we can't derive reliably; remaining fuel values (diesel/lpg/plug-in) are TODO(verify).
 
     private fun autoUncle(f: SearchFilter): String {
         val path = buildString {
@@ -169,7 +169,7 @@ object MarketplaceSearchLinks {
         }
         val q = Params()
         f.minPrice?.let { q["s[min_price]"] = it.toLong().toString() } // verified
-        f.maxMileageKm?.let { q["s[max_km]"] = it.toString() }         // TODO(verify) parity of s[min_km]
+        f.maxMileageKm?.let { q["s[max_km]"] = it.toString() }         // verified live
         return path + q.render()
     }
 
@@ -248,8 +248,8 @@ object MarketplaceSearchLinks {
 
     // --- Autoplac (PL classifieds) — path + query keys VERIFIED from live URLs -------
     // Path-based price ("cena-do-<N>-tysiecy", N in thousands); fuel/mileage/year via
-    // query. fuelTypes is a comma-joined list of GASOLINE/DIESEL/HYBRID (verified);
-    // other fuel values TODO(verify).
+    // query. fuelTypes is a comma-joined list; GASOLINE/DIESEL/HYBRID/LPG/EV/OTHER all
+    // verified against the live fuelTypes= vocabulary. plug-in hybrid TODO(verify).
 
     private fun autoplac(f: SearchFilter): String {
         val path = buildString {
@@ -263,17 +263,20 @@ object MarketplaceSearchLinks {
         return path + q.render()
     }
 
-    private fun autoplacFuel(t: FuelType?): String? = when (t) { // GASOLINE/DIESEL/HYBRID verified; rest TODO(verify)
+    private fun autoplacFuel(t: FuelType?): String? = when (t) { // GASOLINE/DIESEL/HYBRID/LPG/EV/OTHER verified live
         FuelType.PETROL -> "GASOLINE"
         FuelType.DIESEL -> "DIESEL"
         FuelType.HYBRID -> "HYBRID"
-        else -> null
+        FuelType.LPG -> "LPG"
+        FuelType.ELECTRIC -> "EV"
+        FuelType.OTHER -> "OTHER"
+        else -> null // TODO(verify) plugin-hybrid (site also exposes DIESEL_HYBRID/CNG/HYDROGEN/ETHANOL)
     }
 
-    // --- AutoTrader.pl (PL classifieds) — host + paliwo/cena/rok VERIFIED from live URLs -
-    // SEPARATE site from autotrader.com (US) below. benzyna (petrol), cena_od_pln /
-    // cena_do_pln (price band), rok_od / rok_do (year band) confirmed; other fuel values
-    // are TODO(verify).
+    // --- AutoTrader.pl (PL classifieds) — host + paliwo/cena/rok/przebieg VERIFIED ----
+    // SEPARATE site from autotrader.com (US) below. Fuel values benzyna/diesel/elektryczny
+    // and the cena_od_pln/cena_do_pln price band, rok_od/rok_do year band, and przebieg_do
+    // (max mileage) all confirmed against live filtered URLs. lpg/plug-in still TODO(verify).
 
     private fun autoTraderPl(f: SearchFilter): String {
         val q = Params()
@@ -282,12 +285,16 @@ object MarketplaceSearchLinks {
         f.maxPrice?.let { q["cena_do_pln"] = it.toLong().toString() } // verified
         f.minYear?.let { q["rok_od"] = it.toString() }                // verified
         f.maxYear?.let { q["rok_do"] = it.toString() }                // verified
+        f.maxMileageKm?.let { q["przebieg_do"] = it.toString() }      // verified live
         return "https://www.autotrader.pl/szukaj/osobowe" + q.render()
     }
 
     private fun autoTraderPlFuel(t: FuelType?): String? = when (t) {
-        FuelType.PETROL -> "benzyna" // verified live
-        else -> null                 // TODO(verify) diesel/hybryda/elektryczny/lpg
+        FuelType.PETROL -> "benzyna"        // verified live
+        FuelType.DIESEL -> "diesel"         // verified live
+        FuelType.ELECTRIC -> "elektryczny"  // verified live
+        FuelType.HYBRID -> "hybrydowy"      // verified (NB: hybrydowy, NOT hybryda)
+        else -> null                        // TODO(verify) lpg / plugin-hybrid
     }
 
     // --- US auctions (import sourcing) — keyword search ----------------------
@@ -328,14 +335,20 @@ object MarketplaceSearchLinks {
         return "https://www.cars.com/shopping/results/" + q.render()
     }
 
-    // autotrader.com filters max price via a path bucket (/cars-for-sale/cars-under-<N>)
-    // and location via zip/searchRadius we don't have, so only the verified mileage query
-    // is set. make/model path form and the price bucket are TODO(verify). NB: mileage is
-    // in miles on this site; our value is km, so it slightly over-restricts.
+    // autotrader.com path: /cars-for-sale/all-cars/cars-under-<N>/<make>/<model>/<city-state>.
+    // Price bucket (/cars-under-<N>) and make/model path segments confirmed against a live
+    // filtered URL. Location (zip/searchRadius) we don't have, so it's omitted. NB: mileage
+    // is in miles on this site; our value is km, so it slightly over-restricts.
     private fun autoTrader(f: SearchFilter): String {
+        val path = buildString {
+            append("https://www.autotrader.com/cars-for-sale/all-cars")
+            f.maxPrice?.let { append("/cars-under-").append(it.toLong()) }    // verified: price bucket
+            f.make?.let { append("/").append(slug(it)) }                      // verified: make path segment
+            if (f.make != null) f.model?.let { append("/").append(slug(it)) } // verified: model path segment
+        }
         val q = Params()
         f.maxMileageKm?.let { q["mileage"] = it.toString() } // verified (max mileage)
-        return "https://www.autotrader.com/cars-for-sale/all-cars" + q.render()
+        return path + q.render()
     }
 
     // --- helpers -------------------------------------------------------------
