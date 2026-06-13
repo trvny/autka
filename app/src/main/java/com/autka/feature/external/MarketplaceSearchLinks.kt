@@ -204,6 +204,9 @@ object MarketplaceSearchLinks {
             append("https://www.autoscout24.pl/lst")
             f.make?.let { append("/").append(slug(it)) }
             if (f.make != null) f.model?.let { append("/").append(slug(it)) }
+            // Transmission is a path modifier (/lst/<make>/tr_automatyczna), verified only
+            // in the no-model slot; with a model set we skip it rather than risk a bad path.
+            if (f.model == null) f.transmissions.firstNotNullOfOrNull(::autoScoutTransmission)?.let { append("/").append(it) }
         }
         val q = Params()
         q["atype"] = "C"                 // cars (verified)
@@ -237,6 +240,13 @@ object MarketplaceSearchLinks {
         else -> null
     }
 
+    // AS24 transmission path modifier. automatic verified live; manual by parity.
+    private fun autoScoutTransmission(t: Transmission?): String? = when (t) {
+        Transmission.AUTOMATIC -> "tr_automatyczna" // verified live
+        Transmission.MANUAL -> "tr_manualna"        // by parity — TODO(verify)
+        else -> null
+    }
+
     private fun autoScoutSort(s: SortOrder): String = when (s) {
         SortOrder.NEWEST -> "age"                          // verified (live ?sort=age&desc=1)
         SortOrder.PRICE_ASC, SortOrder.PRICE_DESC -> "price" // verified live
@@ -244,10 +254,10 @@ object MarketplaceSearchLinks {
         SortOrder.YEAR_DESC -> "year"                      // verified live (?sort=year)
     }
 
-    // --- mobile.de (EU/DE) — base + price + reg + mileage VERIFIED from live URLs ----
+    // --- mobile.de (EU/DE) — base + price + reg + mileage + transmission VERIFIED ----
     // Confirmed: s=Car&vc=Car&isSearchRequest=true&dam=false; price p=<min>:<max>;
-    // first-registration fr=<min>:<max>; mileage ml=:<max>. make/model are internal
-    // numeric ids (ms=...) we can't derive from a name, so the user picks those on-site.
+    // first-registration fr=<min>:<max>; mileage ml=:<max>; transmission tr=AUTOMATIC_GEAR.
+    // make/model are internal numeric ids (ms=...) we can't derive, so the user picks on-site.
 
     private fun mobileDe(f: SearchFilter): String {
         val q = Params()
@@ -258,7 +268,14 @@ object MarketplaceSearchLinks {
         range(f.minPrice?.toLong(), f.maxPrice?.toLong())?.let { q["p"] = it }  // verified: p=min:max
         range(f.minYear?.toLong(), f.maxYear?.toLong())?.let { q["fr"] = it }   // verified: fr=min:max
         f.maxMileageKm?.let { q["ml"] = ":$it" }                                // verified: ml=:max
+        f.transmissions.firstNotNullOfOrNull(::mobileDeTransmission)?.let { q["tr"] = it } // verified: tr=AUTOMATIC_GEAR
         return "https://suchen.mobile.de/fahrzeuge/search.html" + q.render()
+    }
+
+    private fun mobileDeTransmission(t: Transmission?): String? = when (t) {
+        Transmission.AUTOMATIC -> "AUTOMATIC_GEAR" // verified live (?tr=AUTOMATIC_GEAR)
+        Transmission.MANUAL -> "MANUAL_GEAR"       // by parity — TODO(verify)
+        else -> null
     }
 
     // --- Autoplac (PL classifieds) — path + query keys VERIFIED from live URLs -------
@@ -288,15 +305,15 @@ object MarketplaceSearchLinks {
         else -> null // TODO(verify) plugin-hybrid (site also exposes DIESEL_HYBRID/CNG/HYDROGEN/ETHANOL)
     }
 
-    // --- AutoTrader.pl (PL classifieds) — host + paliwo/cena/rok/przebieg VERIFIED ----
-    // SEPARATE site from autotrader.com (US) below. Fuel values benzyna/diesel/elektryczny/
-    // hybrydowy and the cena_od_pln/cena_do_pln price band, rok_od/rok_do year band, and
-    // przebieg_do (max mileage) all confirmed against live filtered URLs. lpg/plug-in TODO.
+    // --- AutoTrader.pl (PL classifieds) — host + paliwo/skrzynia/cena/rok/przebieg VERIFIED -
+    // SEPARATE site from autotrader.com (US) below. Fuel benzyna/diesel/elektryczny/
+    // hybrydowy; transmission skrzynia_biegow=automatyczna,manualna (comma-joined);
+    // cena_od_pln/cena_do_pln, rok_od/rok_do, przebieg_do all confirmed live. lpg/plug-in TODO.
 
     private fun autoTraderPl(f: SearchFilter): String {
         val q = Params()
         f.fuelTypes.firstNotNullOfOrNull(::autoTraderPlFuel)?.let { q["rodzaj_paliwa"] = it }
-        f.transmissions.firstNotNullOfOrNull(::autoTraderPlTransmission)?.let { q["skrzynia_biegow"] = it }
+        f.transmissions.mapNotNull(::autoTraderPlTransmission).takeIf { it.isNotEmpty() }?.let { q["skrzynia_biegow"] = it.joinToString(",") }
         f.minPrice?.let { q["cena_od_pln"] = it.toLong().toString() } // verified
         f.maxPrice?.let { q["cena_do_pln"] = it.toLong().toString() } // verified
         f.minYear?.let { q["rok_od"] = it.toString() }                // verified
@@ -306,8 +323,9 @@ object MarketplaceSearchLinks {
     }
 
     private fun autoTraderPlTransmission(t: Transmission?): String? = when (t) {
-        Transmission.AUTOMATIC -> "automatyczna" // verified live (?skrzynia_biegow=automatyczna)
-        else -> null                             // TODO(verify) manual (likely "manualna")
+        Transmission.AUTOMATIC -> "automatyczna" // verified live (skrzynia_biegow, comma-joined)
+        Transmission.MANUAL -> "manualna"        // verified live
+        else -> null
     }
 
     private fun autoTraderPlFuel(t: FuelType?): String? = when (t) {
