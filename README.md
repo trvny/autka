@@ -79,7 +79,7 @@ work. **Autka does not scrape.** Listing data is handled in two layers (see
 
 URL parameter vocabularies for the deep-link providers are verified against live URLs
 where possible; unverified parameters are marked `TODO(verify)` in source and tracked
-in `TODO.md`.
+in `docs/TODO.md`.
 
 ## US import cost
 

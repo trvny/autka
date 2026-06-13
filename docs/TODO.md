@@ -1,8 +1,8 @@
 # Autka — open work
 
 Tracks the load-bearing gaps. Architecture is settled; what's left is data, verified
-constants, and verified deep-link parameters. See `docs/INTEGRATION.md` for the
-data-sourcing design and `README.md` for the overview.
+constants, and verified deep-link parameters. See `INTEGRATION.md` for the
+data-sourcing design and the root `README.md` for the overview.
 
 ## Hard product blockers
 
