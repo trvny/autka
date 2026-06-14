@@ -3,8 +3,11 @@ name: Android CI
 on:
   push:
     branches: [ main ]
+    # A backend-only or docs-only change can't affect the Android build, so skip it.
+    paths-ignore: [ 'backend/**', '**/*.md', 'docs/**', 'LICENSE', '.github/workflows/backend-ci.yml' ]
   pull_request:
     branches: [ main ]
+    paths-ignore: [ 'backend/**', '**/*.md', 'docs/**', 'LICENSE', '.github/workflows/backend-ci.yml' ]
   workflow_dispatch:
 
 # Cancel an in-progress run when a newer commit is pushed to the same ref.

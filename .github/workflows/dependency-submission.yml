@@ -3,6 +3,14 @@ name: Dependency Submission
 on:
   push:
     branches: [ main ]
+    # The Gradle graph only changes when these change; don't re-resolve it on
+    # every push. PR dependency-review (below) stays broad and runs on all PRs.
+    paths:
+      - '**/*.gradle'
+      - '**/*.gradle.kts'
+      - 'gradle/libs.versions.toml'
+      - 'gradle/wrapper/gradle-wrapper.properties'
+      - 'gradle.properties'
   pull_request:
     branches: [ main ]
 
