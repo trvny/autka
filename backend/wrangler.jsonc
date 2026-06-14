@@ -9,7 +9,8 @@
     "head_sampling_rate": 1,
     "logs": {
       "enabled": true,
-      "head_sampling_rate": 0.75,
+      "head_sampling_rate": 0.75
+    }
   },
   "d1_databases": [
     {
