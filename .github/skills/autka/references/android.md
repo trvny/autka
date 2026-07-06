@@ -2,7 +2,7 @@
 
 This reference is for working on Android apps **from chat or via GitHub tools**, not inside Android Studio. The headline constraint: you cannot build, run, lint, or emulate here. So the value you add is correct, idiomatic, drop-in code that matches the repo as it already exists — and clean Git hygiene when you commit it.
 
-The primary target is **travino/autka** (a used-car aggregator: Kotlin/Compose Android app + Cloudflare Workers backend). Treat autka as the default repo unless the user names another. The guidance still generalizes to other Android repos.
+The primary target is **trvny/autka** (a used-car aggregator: Kotlin/Compose Android app + Cloudflare Workers backend). Treat autka as the default repo unless the user names another. The guidance still generalizes to other Android repos.
 
 ## The two rules that matter most
 

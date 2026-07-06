@@ -1,4 +1,4 @@
-# D1 Operations (travino/autka backend)
+# D1 Operations (trvny/autka backend)
 
 D1 is the backend's served store: the API reads it, ingestion writes it. Two tables matter most: the offers table (canonical `CarOffer` rows, upserted by `runIngestion`) and `ingest_runs` (one diagnostic row per source per run: `source_id, ok, offers_upserted, error, started_at_ms`, pruned to `INGEST_RUNS_KEEP`).
 
