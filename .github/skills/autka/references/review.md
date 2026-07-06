@@ -1,4 +1,4 @@
-# Review autka (travino/autka)
+# Review autka (trvny/autka)
 
 autka is a used-car aggregator: a Kotlin/Compose Android app (`/app`, package `com.autka`) reading from a Cloudflare Workers backend (`/backend`, TypeScript + D1 + R2) that aggregates marketplaces server-side. Review **both sides together** — most real bugs live at the seam between them.
 

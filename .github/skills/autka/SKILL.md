@@ -1,10 +1,10 @@
 ---
 name: autka
-description: Work on the travino/autka project (Kotlin/Compose Android app + Cloudflare Worker backend, used-car aggregator) — review changes against the load-bearing invariants, diagnose and fix a dead/empty/stale marketplace source, add a new ingest source, do Android work (screens, ViewModels, repositories, DI, Gradle/version catalog), or poke the D1 database. Use whenever autka comes up at all — "review autka", "check this PR", "autka has no offers", "Otomoto stopped showing up", "the feed broke", "add a source", "ingest X", any screen/ViewModel/Compose/Gradle change in the repo, D1/ingest_runs questions, or general Android/Kotlin/Compose work in any repo (the android reference generalizes) — even when the request just names a file or class without saying "Android". Read the matching reference file before acting.
+description: Work on the trvny/autka project (Kotlin/Compose Android app + Cloudflare Worker backend, used-car aggregator) — review changes against the load-bearing invariants, diagnose and fix a dead/empty/stale marketplace source, add a new ingest source, do Android work (screens, ViewModels, repositories, DI, Gradle/version catalog), or poke the D1 database. Use whenever autka comes up at all — "review autka", "check this PR", "autka has no offers", "Otomoto stopped showing up", "the feed broke", "add a source", "ingest X", any screen/ViewModel/Compose/Gradle change in the repo, D1/ingest_runs questions, or general Android/Kotlin/Compose work in any repo (the android reference generalizes) — even when the request just names a file or class without saying "Android". Read the matching reference file before acting.
 license: Complete terms in LICENSE.txt
 ---
 
-# autka (travino/autka)
+# autka (trvny/autka)
 
 A used-car aggregator: Kotlin/Compose Android app (`/app`, package `com.autka`) reading from a Cloudflare Workers backend (`/backend`, TypeScript + D1 + R2) that aggregates marketplaces **server-side**. The app binds a single `BackendCarOfferSource` (+ `MockCarOfferSource`); per-marketplace adapters live in `backend/src/ingest/sources/`, registered in `runner.ts`'s `ALL_SOURCES`. Credentials and feeds stay off the device.
 
