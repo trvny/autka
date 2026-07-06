@@ -1,4 +1,4 @@
-# Add a Source (travino/autka)
+# Add a Source (trvny/autka)
 
 ## The key fact: sources are server-side now
 
