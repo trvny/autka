@@ -22,20 +22,7 @@ fastlane/metadata/android/en-US/changelogs/<versionCode>.txt
 fastlane/metadata/android/pl-PL/changelogs/<versionCode>.txt
 ```
 
-## 2. Activate the release workflow (one-time)
-
-The workflow ships as `docs/release.workflow.yml` because the connector that authored it
-cannot write under `.github/workflows/`. Move it into place once:
-
-```bash
-git mv docs/release.workflow.yml .github/workflows/release.yml
-git commit -m "ci: add release workflow"
-```
-
-It triggers on a `v*` tag (or manual dispatch), builds a release APK + AAB, and attaches
-them to a GitHub release.
-
-## 3. Signing key (do this once, guard it forever)
+## 2. Signing key (do this once, guard it forever)
 
 `assembleRelease` produces an **unsigned** APK unless a keystore is supplied. Unsigned is
 fine for F-Droid (it re-signs every build) but not installable directly and not accepted by
@@ -67,17 +54,17 @@ Add four Actions secrets (Settings → Secrets and variables → Actions):
 The workflow decodes the keystore only when `KEYSTORE_BASE64` is set; the Gradle config wires
 up signing only when `AUTKA_KEYSTORE` is present. No key material ever touches the repo.
 
-## 4. Ship it
+## 3. Ship it
 
 ```bash
 git tag v0.2.0
 git push origin v0.2.0
 ```
 
-The workflow builds and creates the GitHub release with the APK + AAB attached. Verify the
-run is green and the artifacts are present.
+`.github/workflows/release.yml` builds and creates the GitHub release with the APK + AAB
+attached. Verify the run is green and the artifacts are present.
 
-## 5. Google Play
+## 4. Google Play
 
 * Upload the **AAB** (`app-release.aab`) — Play requires App Bundles for new apps.
 * Listing text and graphics come from `fastlane/metadata/android/` (usable via `fastlane supply`
@@ -86,7 +73,7 @@ run is green and the artifacts are present.
 * Data safety form: the app collects **no** personal data; it sends only search/filter
   parameters to its own backend. No third-party SDKs, ads or trackers.
 
-## 6. F-Droid
+## 5. F-Droid
 
 The app is F-Droid-eligible: MIT-licensed, all dependencies are FOSS, maps use osmdroid
 (no Google Play Services / Maps key), and there is no proprietary blob.
