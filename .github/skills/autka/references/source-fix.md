@@ -1,4 +1,4 @@
-# Fix a Source (travino/autka)
+# Fix a Source (trvny/autka)
 
 autka aggregates server-side: the backend Worker runs each `IngestSource`, upserts to D1, and the app reads the D1-backed API into its Room cache. A "dead source" almost always means an ingest adapter stopped returning rows — fix it at the backend, not the app. You can't run the Worker in chat — confirm live behavior with `curl` against the (permitted) feed in the bash sandbox; D1 reads happen via the user running `wrangler d1 execute`. Report findings against files and the `ingest_runs` evidence, not guesses.
 
