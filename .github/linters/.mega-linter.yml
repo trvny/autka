@@ -13,3 +13,5 @@ DISABLE:
   - COPYPASTE
 
 FILTER_REGEX_EXCLUDE: "(gradle/wrapper/gradle-wrapper\\.jar|fastlane/metadata/.*/images/|package-lock\\.json)"
+ACTION_ZIZMOR_UNSECURED_ENV_VARIABLES:
+  - GITHUB_TOKEN
