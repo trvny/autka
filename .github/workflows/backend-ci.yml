@@ -22,7 +22,7 @@ defaults:
 jobs:
   test:
     name: Typecheck & test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -48,7 +48,7 @@ jobs:
 
   deploy:
     name: Deploy to Cloudflare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
