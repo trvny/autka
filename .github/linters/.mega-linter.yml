@@ -1,4 +1,4 @@
-ated MegaLinter configuration
+# MegaLinter configuration
 # Docs: https://megalinter.io/latest/config-file/
 ---
 APPLY_FIXES: none
