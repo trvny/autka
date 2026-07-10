@@ -14,9 +14,6 @@ on:
   pull_request:
     branches: [ main ]
 
-permissions:
-  contents: write        # required to submit the dependency graph
-
 jobs:
   # On push to main: resolve the full Gradle dependency graph (including transitive
   # deps) and submit it to GitHub. This is what lets Dependabot security alerts work
@@ -25,9 +22,13 @@ jobs:
     name: Submit dependency graph
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write        # required to submit the dependency graph
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -51,6 +52,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Dependency review
         uses: actions/dependency-review-action@v5

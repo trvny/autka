@@ -1,7 +1,10 @@
 # MegaLinter configuration
 # Docs: https://megalinter.io/latest/config-file/
 ---
-APPLY_FIXES: none
+# Auto-fix applied in-container and surfaced under
+# megalinter-reports/updated_sources/ in the artifact. No writeback:
+# mega-linter.yml keeps APPLY_FIXES_EVENT: none, so nothing is committed.
+APPLY_FIXES: all
 # REPOSITORY: secret/SAST scanning - GitHub secret scanning + Dependabot
 #   already cover this here
 # SPELL: cspell - Polish strings.xml resources produce mostly noise
@@ -11,18 +14,24 @@ DISABLE:
   - SPELL
   - COPYPASTE
 
-# ACTION_ZIZMOR: whitelisting GITHUB_TOKEN wasn't enough - full-codebase run
-#   found 42 real findings (permissions/pinning) across existing workflows.
-#   Real debt, worth a dedicated pass, not blocking this rollout.
+# ACTION_ZIZMOR: now enabled and green (see below + .github/zizmor.yml).
+#   Runs offline; unpinned-uses waived to ref-pin; real findings fixed
+#   (persist-credentials, job-scoped permissions, release cache-disabled).
 # SQL_TSQLLINT: MegaLinter's only SQL linter defaults to T-SQL (MSSQL)
 #   dialect - these migrations are SQLite (D1), every "fix" it wants is
 #   wrong here (IF NOT EXISTS, ADD COLUMN, no SET ANSI_NULLS...).
 # TYPESCRIPT_STANDARD: can't locate backend/tsconfig.json from repo root;
 #   revisit with an explicit --project arg if you want this back.
 DISABLE_LINTERS:
-  - ACTION_ZIZMOR
   - SQL_TSQLLINT
   - TYPESCRIPT_STANDARD
+
+# ACTION_ZIZMOR: run offline (no GitHub API -> no ref-confusion crash) and
+#   fail CI only on low+ severity. See .github/zizmor.yml for the ref-pin
+#   policy on unpinned-uses.
+ACTION_ZIZMOR_ARGUMENTS:
+  - "--offline"
+  - "--min-severity=low"
 
 # First full-codebase run surfaced pre-existing style debt across ~60
 # Kotlin files and workflow YAML. Non-blocking so the report stays useful
