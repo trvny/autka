@@ -1,12 +1,6 @@
 # ----------------------------------------------------------------------------------------
 # Autka release workflow.
 #
-# This file lives in docs/ because the GitHub App connector cannot write to
-# .github/workflows/. To activate it, move it into place and commit:
-#
-#     git mv docs/release.workflow.yml .github/workflows/release.yml
-#     git commit -m "ci: add release workflow"
-#
 # Trigger: push a tag matching v* (e.g. v0.1.0) or run it manually from the Actions tab.
 # It builds a release APK + AAB and publishes them on a GitHub release. Signing is OPT-IN
 # (see RELEASING.md): with the keystore secrets set the artifacts are signed; without them
@@ -35,6 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -44,6 +40,8 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true   # release build must not restore a poisonable cache
 
       - name: Decode signing keystore
         id: keystore
