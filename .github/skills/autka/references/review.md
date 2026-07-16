@@ -1,8 +1,10 @@
 # Review autka (trvny/autka)
 
+
+
 autka is a used-car aggregator: a Kotlin/Compose Android app (`/app`, package `com.autka`) reading from a Cloudflare Workers backend (`/backend`, TypeScript + D1 + R2) that aggregates marketplaces server-side. Review **both sides together** — most real bugs live at the seam between them.
 
-Walk the invariants below. For each, state pass / fail / not-touched and cite the file. Lead with anything that breaks the build or the app↔backend contract; style nits last. Don't claim it compiles. For a PR use `github:get_file_contents` with `ref: "refs/pull/<n>/head"` or read the changed files directly. This is a static review — say so, and point real build signal at CI.
+Walk the invariants below. For each, state pass / fail / not-touched and cite the file. Lead with anything that breaks the build or the app↔backend contract; style nits last. Don't claim it compiles.
 
 ## The load-bearing invariants
 
@@ -41,4 +43,4 @@ Versions only via `gradle/libs.versions.toml` (referenced as `libs.*`) — no ha
 
 ## Output
 
-A short structured review: blocking issues first (build breakers, parity drift, scraping/secret leaks, cross-currency compares), then correctness, then style. Each item: file/symbol, what's wrong, the minimal fix. End by pointing build/lint/test signal at CI (`lintDebug assembleDebug testDebugUnitTest`) since you can't run it here. If a source or the shared shape changed, hand off to `references/add-source.md`; if a feed broke, to `references/source-fix.md`.
+A short structured review: blocking issues first (build breakers, parity drift, scraping/secret leaks, cross-currency compares), then correctness, then style. Each item: file/symbol, what's wrong, the minimal fix. End by pointing build/lint/test signal at CI (`lintDebug assembleDebug testDebugUnitTest`) since you can't run it here. If a source or the shared shape changed, hand off to `cmd-autka-add-source`; if a feed broke, to `autka-source-fix`.

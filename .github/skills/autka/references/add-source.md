@@ -1,12 +1,12 @@
 # Add a Source (trvny/autka)
 
+
+
 ## The key fact: sources are server-side now
 
 autka used to multibind a `CarOfferSource` per marketplace **in the app**. It doesn't anymore. Aggregation moved to the **backend Cloudflare Worker** (`/backend`): it fans out to every marketplace, normalizes to one shape, and stores it in D1. The app binds a **single** `BackendCarOfferSource` (plus a `MockCarOfferSource` for offline dev) in `app/.../di/SourcesModule.kt` and never talks to a marketplace directly — credentials and feeds stay off the device.
 
-So **adding a source = adding a backend ingest adapter.** You only touch the app if the shared `CarOffer` shape itself changes (see [If the shared CarOffer shape changes](#if-the-shared-caroffer-shape-changes)). Do not add a new `@Binds @IntoSet` marketplace adapter on the app side — that path is retired.
-
-Commit hygiene: put the new adapter file and the `runner.ts` registration in **one `push_files` commit** so the source is never registered-but-missing or present-but-unregistered. After writing, re-read the file (commit SHA) and report the SHA + the CI/Actions conclusion, not "done."
+So **adding a source = adding a backend ingest adapter.** You only touch the app if the shared `CarOffer` shape itself changes (see [If the shared shape changes](#if-the-shared-caroffer-shape-changes)). Do not add a new `@Binds @IntoSet` marketplace adapter on the app side — that path is retired.
 
 ## How ingestion fits together
 
@@ -61,7 +61,7 @@ Mapping rules into `CarOffer` (from `lib/types.ts` — match exactly):
 - `id` is **namespaced by source**: `"otomoto:12345"`. `sourceId` repeats the source id.
 - `region` ∈ `POLAND | EUROPE | USA`; `price.currency` ∈ `PLN | EUR | USD`; `fuelType`/`transmission` are the canonical enums (map unknowns to `UNKNOWN`, not a guess).
 - Nullable fields (`year`, `mileageKm`, `powerHp`, `location`, `thumbnailUrl`, `postedAtEpochMs`, `latitude`, `longitude`) are `null` when absent — don't invent values.
-- Leave image-to-R2 mirroring to `cacheOfferImages` in the runner; just put source URLs in `thumbnailUrl`/`imageUrls`.
+- Leave image-to-R2 mirroring to `cacheOfferimages` in the runner; just put source URLs in `thumbnailUrl`/`imageUrls`.
 
 New env keys go in `backend/src/env.d.ts` (the `Env` type) and are set as Worker secrets (`wrangler secret put OTOMOTO_API_KEY`) — never committed, never a `buildConfigField`, never sent to the app.
 

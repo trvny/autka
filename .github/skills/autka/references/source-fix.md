@@ -1,6 +1,8 @@
 # Fix a Source (trvny/autka)
 
-autka aggregates server-side: the backend Worker runs each `IngestSource`, upserts to D1, and the app reads the D1-backed API into its Room cache. A "dead source" almost always means an ingest adapter stopped returning rows — fix it at the backend, not the app. You can't run the Worker in chat — confirm live behavior with `curl` against the (permitted) feed in the bash sandbox; D1 reads happen via the user running `wrangler d1 execute`. Report findings against files and the `ingest_runs` evidence, not guesses.
+
+
+autka aggregates server-side: the backend Worker runs each `IngestSource`, upserts to D1, and the app reads the D1-backed API into its Room cache. A "dead source" almost always means an ingest adapter stopped returning rows — fix it at the backend, not the app.
 
 ## Step 1: Localize with `ingest_runs`
 
@@ -32,7 +34,7 @@ Find what moved: a renamed field, a nested path, a changed auth scheme, a new pa
 Edit `backend/src/ingest/sources/<sourceId>.ts` — change only what moved:
 - **Endpoint/auth:** update the URL or header; new env keys go in `env.d.ts` and are set as Worker secrets (never committed).
 - **Mapping:** fix the `toCarOffer` field paths. Keep the canonical shape from `lib/types.ts`: namespaced `id` (`"<source>:<theirId>"`), `region`/`currency`/`fuelType`/`transmission` enums (unmapped → `UNKNOWN`, never a guess), `null` for genuinely-absent nullable fields.
-- **Don't widen the blast radius:** one source's fix shouldn't touch `runner.ts`, the shared types, or other sources unless the `CarOffer` shape itself changed (then sync `com.autka.core.model.CarOffer` too — that's an add-source shaped change).
+- **Don't widen the blast radius:** one source's fix shouldn't touch `runner.ts`, the shared types, or other sources unless the `CarOffer` shape itself changed (then sync `com.autka.core.model.CarOffer` too — that's a `cmd-autka-add-source` shaped change).
 
 If the compliant feed is **gone** (agreement lapsed, endpoint retired) and there's no permitted replacement, the honest fix is to **disable** the source (`isEnabled: () => false`, `fetch` returns `[]`) and note what would re-enable it. Do not switch to scraping a ToS-protected site to "keep it working."
 
@@ -57,6 +59,6 @@ Good = the source now shows `ok=1, offers_upserted>0` and `/offers` returns its 
 
 - **Diagnose from `ingest_runs` first** — don't rewrite an adapter that's merely disabled or mis-keyed.
 - **Never scrape to "fix" it.** Gone feed → disable + note, not a scraper.
-- **Keep the failure isolated** — a fix that lets the source throw out of `runIngestion` regresses the isolation invariant (one source can't sink the rest).
+- **Keep the failure isolated** — a fix that lets the source throw out of `runIngestion` regresses invariant #2 (one source can't sink the rest).
 - **Secrets stay in `env`**, never committed; run `github:run_secret_scanning` on the change.
 - **Only sync the app** when the shared shape changed; a normal feed fix is backend-only.
