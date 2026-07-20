@@ -88,7 +88,7 @@ kotlin {
 // Remove once Hilt ships a release that bundles kotlin-metadata-jvm >= 2.3.0.
 configurations.configureEach {
     resolutionStrategy {
-        force("org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.0")
+        force("org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.10")
     }
 }
 
