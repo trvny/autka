@@ -1,6 +1,6 @@
 # Autka — external marketplace deep-links: integration
 
-How the deep-link feature fits the monorepo (`travino/autka`: Android app + Cloudflare
+How the deep-link feature fits the monorepo (`trvny/autka`: Android app + Cloudflare
 Workers backend), and what's left to do.
 
 ## The decision, in one paragraph

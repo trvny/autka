@@ -34,7 +34,7 @@ keytool -genkeypair -v \
   -alias autka \
   -keyalg RSA -keysize 4096 -validity 10000 \
   -storepass '<STORE_PASS>' -keypass '<KEY_PASS>' \
-  -dname "CN=Autka, O=travino, C=PL"
+  -dname "CN=Autka, O=travny, C=PL"
 ```
 
 > **Back it up offline before going further.** If you lose this keystore or its passwords you
