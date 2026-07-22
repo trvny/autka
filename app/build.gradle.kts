@@ -31,6 +31,7 @@ android {
         // Override per environment. 10.0.2.2 = host loopback from the Android emulator,
         // so `wrangler dev` (localhost:8787) is reachable in debug builds.
         buildConfigField("String", "BACKEND_BASE_URL", "\"http://10.0.2.2:8787/\"")
+        buildConfigField("boolean", "ENABLE_MOCK_SOURCE", "true")
     }
 
     signingConfigs {
@@ -48,6 +49,9 @@ android {
         release {
             // Verified live: GET / returns 200 and /offers, /import-services serve JSON.
             buildConfigField("String", "BACKEND_BASE_URL", "\"https://cargate-backend.travny.workers.dev/\"")
+            // Sample listings are useful in debug builds, but must never be mixed into
+            // a production catalogue or presented as real marketplace data.
+            buildConfigField("boolean", "ENABLE_MOCK_SOURCE", "false")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

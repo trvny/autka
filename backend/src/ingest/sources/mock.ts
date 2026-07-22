@@ -1,11 +1,11 @@
 import type { IngestSource } from "../source";
 import type { CarOffer } from "../../lib/types";
 
-/** Always-on sample source so the backend has data with zero configuration. */
+/** Opt-in sample source for local development and tests. Never enabled in production by default. */
 export const mockSource: IngestSource = {
   sourceId: "mock",
   displayName: "Sample data",
-  isEnabled: () => true,
+  isEnabled: (env) => String(env.ENABLE_MOCK_SOURCE).toLowerCase() === "true",
   async fetch(): Promise<CarOffer[]> {
     const now = Date.now();
     const h = (n: number) => now - n * 3_600_000;

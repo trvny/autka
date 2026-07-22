@@ -33,6 +33,7 @@ async function runsFor(sourceId: string) {
 describe("runIngestion isolation", () => {
   beforeEach(async () => {
     await env.DB.prepare("DELETE FROM ingest_runs").run();
+    await env.DB.prepare("DELETE FROM ingest_locks").run();
   });
 
   it("a failing source does not stop the others", async () => {
@@ -73,5 +74,29 @@ describe("runIngestion isolation", () => {
       source("weird", async () => { throw "plain string failure"; }),
     ]);
     expect(await runsFor("weird")).toMatchObject({ ok: 0, error: "plain string failure" });
+  });
+
+  it("skips a second overlapping run for the same source", async () => {
+    let releaseFetch: () => void = () => {};
+    let markEntered: () => void = () => {};
+    const fetchEntered = new Promise<void>((resolve) => { markEntered = resolve; });
+    const fetchReleased = new Promise<void>((resolve) => { releaseFetch = resolve; });
+    let fetchCalls = 0;
+    const locked = source("locked", async () => {
+      fetchCalls += 1;
+      markEntered();
+      await fetchReleased;
+      return [offer("locked:1", "locked")];
+    });
+
+    const firstRun = runIngestion(env, [locked]);
+    await fetchEntered;
+    const secondResult = await runIngestion(env, [locked]);
+
+    expect(secondResult[0]).toMatchObject({ ok: true, upserted: 0, skipped: true });
+    expect(fetchCalls).toBe(1);
+
+    releaseFetch();
+    expect((await firstRun)[0]).toMatchObject({ ok: true, upserted: 1 });
   });
 });

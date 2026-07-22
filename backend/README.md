@@ -2,89 +2,108 @@
 
 Cloudflare Workers backend that aggregates used-car offers server-side and serves a
 clean API to the Autka Android app. Built on **Workers + D1** (SQL) **+ R2** (images),
-with a cron-triggered ingestion pipeline. Aggregation, credentials, and any feed access
-live here — never on the device.
+with a cron-triggered ingestion pipeline. Aggregation, credentials, and feed access live
+here — never on the device.
 
 ## Why a backend
 
 The app deliberately does not scrape marketplaces. This Worker is where compliant feeds
-are normalized into one schema and served. Each marketplace is an `IngestSource`
-(mirroring the app's old adapter pattern); the cron trigger runs every enabled source,
-isolates failures, and upserts results into D1. The app then talks to one endpoint.
+are normalized into one schema and served. Each marketplace is an `IngestSource`; the
+cron trigger runs every enabled source, isolates failures, and upserts results into D1.
+The app then talks to one endpoint.
 
 ## API
 
-| Method | Path            | Purpose |
-|--------|-----------------|---------|
-| GET    | `/health`       | Liveness check |
-| GET    | `/offers`       | Search; query params mirror the app's `SearchFilter` (`query, make, model, minPrice, maxPrice, minYear, maxYear, maxMileageKm, fuelTypes, regions, sources, sort, limit, offset`) |
-| GET    | `/offers/:id`   | Single offer |
-| GET    | `/sources`      | Source list + enabled flags (for app UI toggles) |
-| POST   | `/admin/ingest` | Manually trigger ingestion; `Authorization: Bearer <ADMIN_TOKEN>` |
-| GET    | `/images/<key>` | Serve an offer image from R2 (streamed, cached, ETag/304) |
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/health` | Liveness check |
+| GET | `/offers` | Search and pagination; query params mirror `SearchFilter` |
+| GET | `/offers/:id` | Single offer |
+| GET | `/sources` | Source list and enabled flags |
+| POST | `/admin/ingest` | Manually trigger ingestion; bearer-token protected |
+| GET | `/images/<key>` | Stream a cached offer image from R2 |
+| GET | `/import-services` | Import/sourcing companies, optionally filtered by region |
 
-`/offers` returns `{ offers: CarOffer[], count }`. The `CarOffer` shape in
-`src/lib/types.ts` mirrors the Android `com.autka.core.model.CarOffer` — keep them
-in sync.
+`/offers` returns `{ offers: CarOffer[], count, warnings? }`. In regular mode, `count` is
+the total number of matching rows or de-duplicated groups before `limit` and `offset`.
+`complete=true` instead returns the full matching set from one SQL statement, ignoring
+pagination parameters, so ingestion cannot shift page boundaries between client requests.
+Complete responses are capped at 5,000 rows and return HTTP 422 rather than silently
+truncating a larger catalogue.
 
-## Provisioned resources (Cloudflare account: travny)
+Native prices may be PLN, EUR or USD, so server-side price filters and price ordering
+remain disabled until a normalized-price column lands. Android requests `complete=true`
+and performs those operations after currency conversion.
 
-- **D1**: `cargate-offers` — id `50fde2d6-d2f2-4607-9961-729b462b115b` (region EEUR)
-- **R2**: `cargate-images` (region ENAM)
+The `CarOffer` shape in `src/lib/types.ts` mirrors Android
+`com.autka.core.model.CarOffer`; keep them in sync.
 
-Both are already wired into `wrangler.jsonc`.
+## Provisioned resources
+
+- **D1**: `cargate-offers`
+- **R2**: `cargate-images`
+
+Both are wired in `wrangler.jsonc`.
 
 ## Local development
 
 ```bash
 npm install
-npm run db:migrate:local      # apply migrations to the local D1
-npm run dev                   # wrangler dev — http://localhost:8787
-npm test                      # vitest (Workers pool) — runs the API against Miniflare
-npm run typecheck             # tsc --noEmit
+npm run db:migrate:local
+npm run dev
+npm test
+npm run typecheck
 ```
 
-The Android debug build points at `http://10.0.2.2:8787/` (emulator loopback), so
-`npm run dev` is reachable from the app with no extra config.
+The Android debug build points at `http://10.0.2.2:8787/`, the emulator loopback to the
+host running `wrangler dev`.
+
+Mock ingestion is opt-in. Set `ENABLE_MOCK_SOURCE=true` for a local/demo Worker. The
+production configuration keeps it false.
 
 ## Deploy
 
 ```bash
-# one-time: authenticate wrangler to your Cloudflare account
 npx wrangler login
-
-# set the admin token secret (guards POST /admin/ingest)
 npx wrangler secret put ADMIN_TOKEN
-
-# apply migrations to the REMOTE (production) D1, then deploy
 npm run db:migrate:remote
 npm run deploy
 ```
 
-After deploy, set the app's release `BACKEND_BASE_URL` (in `app/build.gradle.kts`) to the
-printed `https://cargate-backend.<your-subdomain>.workers.dev/` URL.
+The migration step is required. Migrations create the offer schema, de-duplication and
+coordinate columns, add per-source ingest leases, and remove mock rows left by older
+production deployments.
 
-## Ingestion sources
+## Ingestion semantics
 
-`src/ingest/sources/` — `mock.ts` is always-on sample data so the API has content with
-zero config. `stubs.ts` holds the disabled real connectors (Otomoto, OLX, Facebook,
-US auctions), each documenting the compliant data path required before enabling. The
-legal acquisition route, not the code, is the hard part — see comments in `stubs.ts`.
+`src/ingest/sources/` contains the source adapters. `mock.ts` is a local/demo source;
+`stubs.ts` documents the disabled real connectors and their required compliant data paths.
+
+Every currently enabled adapter is treated as a **complete snapshot**:
+
+1. acquire a per-source D1 lease;
+2. fetch and normalize the source snapshot;
+3. cache images in R2 best-effort;
+4. refresh the lease to prove the run was not superseded;
+5. upsert the snapshot;
+6. remove source rows not seen in that successful run;
+7. release the lease.
+
+A concurrent scheduled/manual run for the same source is skipped, while different sources
+still run in parallel. A failed fetch does not delete the previous snapshot. Future delta
+feeds must declare different cleanup semantics instead of using the snapshot path unchanged.
 
 ## Images
 
-During ingestion, each offer's images are fetched best-effort and stored in the
-`cargate-images` R2 bucket (`src/ingest/images.ts`), and the offer's URLs are
-rewritten to backend-served `/images/<key>` paths. This gives the app stable,
-CDN-backed image URLs instead of marketplace URLs that may expire or block
-hotlinking. Failures (bad URL, timeout, non-image) are swallowed and the original
-URL kept, so a bad image never breaks ingestion. `GET /images/<key>` streams the
-object straight from R2 (never buffered) with long cache headers and 304 support.
-It is read-only — it never fetches arbitrary URLs on demand, so there is no
-open-proxy / SSRF surface.
+During ingestion, images are fetched best-effort and stored in R2. Offer URLs are rewritten
+to backend-served `/images/<key>` paths. Failed downloads retain their original URL and do
+not fail the whole ingest. The image route streams objects, supports ETag/304, and never
+fetches arbitrary URLs on demand.
 
-## Notes
+## Operations
 
-- Cron runs ingestion every 30 min (`triggers.crons` in `wrangler.jsonc`).
-- `ingest_runs` table records each run (source, timing, count, ok/error) for debugging.
-- Secrets (`ADMIN_TOKEN`) are set via `wrangler secret put`, never committed.
+- Cron runs hourly.
+- `ingest_runs` retains the latest 500 diagnostic rows.
+- `ingest_locks` prevents overlapping snapshots for one source and uses expiring leases so
+  a crashed Worker cannot block ingestion forever.
+- `ADMIN_TOKEN` is a Worker secret and is never committed.

@@ -2,14 +2,15 @@ package com.autka.data.remote.backend
 
 import com.autka.core.model.CarOffer
 import com.autka.core.model.SearchFilter
+import com.autka.core.model.SortOrder
 import com.autka.data.remote.CarOfferSource
 import com.autka.data.remote.SourceId
 import javax.inject.Inject
 
 /**
- * Single source that delegates aggregation to the backend. Replaces the per-marketplace
- * client adapters: the backend merges Otomoto/OLX/US-auction/... server-side, so the app
- * no longer holds marketplace credentials or scraping logic.
+ * Single transport that delegates marketplace aggregation to the backend. Marketplace
+ * source ids remain inside [SearchFilter.sourceIds]; this adapter's own id is never used
+ * as a marketplace filter.
  */
 class BackendCarOfferSource @Inject constructor(
     private val api: BackendApi,
@@ -19,12 +20,20 @@ class BackendCarOfferSource @Inject constructor(
     override val isEnabled = true
 
     override suspend fun fetch(filter: SearchFilter): List<CarOffer> {
-        val resp = api.offers(
+        val serverSort = when (filter.sort) {
+            // The backend stores mixed PLN/EUR/USD amounts. Until it has a normalized
+            // price column, price filtering/sorting must stay client-side or it can drop
+            // correct offers before the phone converts currencies.
+            SortOrder.PRICE_ASC, SortOrder.PRICE_DESC -> SortOrder.NEWEST
+            else -> filter.sort
+        }
+
+        val response = api.offers(
             query = filter.query.ifBlank { null },
             make = filter.make,
             model = filter.model,
-            minPrice = filter.minPrice,
-            maxPrice = filter.maxPrice,
+            minPrice = null,
+            maxPrice = null,
             minYear = filter.minYear,
             maxYear = filter.maxYear,
             maxMileageKm = filter.maxMileageKm,
@@ -32,8 +41,9 @@ class BackendCarOfferSource @Inject constructor(
             transmissions = filter.transmissions.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
             regions = filter.regions.joinToString(",") { it.name },
             sources = filter.sourceIds.takeIf { it.isNotEmpty() }?.joinToString(","),
-            sort = filter.sort.name,
+            sort = serverSort.name,
+            complete = true,
         )
-        return resp.offers.map { it.toModel() }
+        return response.offers.map { it.toModel() }
     }
 }

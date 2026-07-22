@@ -17,6 +17,9 @@ interface CarOfferDao {
     @Query("SELECT * FROM car_offers WHERE id = :id")
     fun observeById(id: String): Flow<CarOfferEntity?>
 
+    @Query("DELETE FROM car_offers WHERE sourceId IN (:sourceIds)")
+    suspend fun deleteBySourceIds(sourceIds: List<String>)
+
     @Query("DELETE FROM car_offers WHERE fetchedAtEpochMs < :olderThanEpochMs")
     suspend fun deleteStale(olderThanEpochMs: Long)
 

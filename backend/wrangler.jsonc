@@ -6,7 +6,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": false,
   "cache": {
-  "enabled": true,
+    "enabled": true
   },
   "observability": {
     "enabled": true,
@@ -24,17 +24,14 @@
       "migrations_dir": "migrations"
     }
   ],
-  // R2 stores offer images (bucket: cargate-images).
   "r2_buckets": [
     { "binding": "IMAGES", "bucket_name": "cargate-images" }
   ],
   "triggers": {
-    // Re-run ingestion hourly. Each run re-upserts every offer and writes one
-    // ingest_runs row per source, so fewer runs = fewer D1 rows written/day —
-    // the binding limit on the Workers Free plan. (Was */30.)
     "crons": ["0 * * * *"]
   },
   "vars": {
-    "ENVIRONMENT": "production"
+    "ENVIRONMENT": "production",
+    "ENABLE_MOCK_SOURCE": "false"
   }
 }
