@@ -5,7 +5,7 @@ import type { CarOffer } from "../../lib/types";
 export const mockSource: IngestSource = {
   sourceId: "mock",
   displayName: "Sample data",
-  isEnabled: (env) => env.ENABLE_MOCK_SOURCE === "true",
+  isEnabled: (env) => String(env.ENABLE_MOCK_SOURCE).toLowerCase() === "true",
   async fetch(): Promise<CarOffer[]> {
     const now = Date.now();
     const h = (n: number) => now - n * 3_600_000;
