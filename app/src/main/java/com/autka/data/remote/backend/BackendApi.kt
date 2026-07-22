@@ -6,11 +6,7 @@ import kotlinx.serialization.Serializable
 import retrofit2.http.GET
 import retrofit2.http.Query
 
-/**
- * Client for the Autka aggregation backend (Cloudflare Worker). The backend already
- * fans out to every marketplace server-side, normalizes, and caches, so the app talks
- * to this one endpoint instead of holding per-marketplace adapters + credentials.
- */
+/** Client for the Autka aggregation backend. */
 interface BackendApi {
     @GET("offers")
     suspend fun offers(
@@ -22,12 +18,13 @@ interface BackendApi {
         @Query("minYear") minYear: Int? = null,
         @Query("maxYear") maxYear: Int? = null,
         @Query("maxMileageKm") maxMileageKm: Int? = null,
-        @Query("fuelTypes") fuelTypes: String? = null, // comma-joined
-        @Query("transmissions") transmissions: String? = null, // comma-joined
-        @Query("regions") regions: String? = null,     // comma-joined
-        @Query("sources") sources: String? = null,     // comma-joined
+        @Query("fuelTypes") fuelTypes: String? = null,
+        @Query("transmissions") transmissions: String? = null,
+        @Query("regions") regions: String? = null,
+        @Query("sources") sources: String? = null,
         @Query("sort") sort: String? = null,
         @Query("limit") limit: Int? = null,
+        @Query("offset") offset: Int? = null,
     ): OffersResponse
 
     /**
@@ -43,7 +40,11 @@ interface BackendApi {
 }
 
 @Serializable
-data class OffersResponse(val offers: List<OfferDto>, val count: Int)
+data class OffersResponse(
+    val offers: List<OfferDto>,
+    /** Total matching rows/groups before limit and offset are applied. */
+    val count: Int,
+)
 
 @Serializable
 data class OfferDto(
