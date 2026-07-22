@@ -24,11 +24,16 @@ The app then talks to one endpoint.
 | GET | `/images/<key>` | Stream a cached offer image from R2 |
 | GET | `/import-services` | Import/sourcing companies, optionally filtered by region |
 
-`/offers` returns `{ offers: CarOffer[], count, warnings? }`. `count` is the total number
-of matching rows or de-duplicated groups before `limit` and `offset`. Native prices may be
-PLN, EUR or USD, so server-side price filters and price ordering remain disabled until a
-normalized-price column lands. The Android client fetches all pages and performs those
-operations after currency conversion.
+`/offers` returns `{ offers: CarOffer[], count, warnings? }`. In regular mode, `count` is
+the total number of matching rows or de-duplicated groups before `limit` and `offset`.
+`complete=true` instead returns the full matching set from one SQL statement, ignoring
+pagination parameters, so ingestion cannot shift page boundaries between client requests.
+Complete responses are capped at 5,000 rows and return HTTP 422 rather than silently
+truncating a larger catalogue.
+
+Native prices may be PLN, EUR or USD, so server-side price filters and price ordering
+remain disabled until a normalized-price column lands. Android requests `complete=true`
+and performs those operations after currency conversion.
 
 The `CarOffer` shape in `src/lib/types.ts` mirrors Android
 `com.autka.core.model.CarOffer`; keep them in sync.
