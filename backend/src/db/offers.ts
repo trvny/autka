@@ -23,6 +23,11 @@ interface OfferRow {
   longitude: number | null;
 }
 
+type QueryRow = OfferRow & {
+  _dup_count?: number;
+  _dup_sources?: string | null;
+};
+
 function rowToOffer(r: OfferRow): CarOffer {
   return {
     id: r.id,
@@ -47,8 +52,8 @@ function rowToOffer(r: OfferRow): CarOffer {
   };
 }
 
-// Every order ends with a unique key. Offset paging is otherwise allowed to reshuffle
-// rows whose primary sort values tie, causing duplicate or missing offers between pages.
+// Every order ends with a unique key. This also keeps the legacy offset API deterministic,
+// though the Android correctness path uses one complete SQL statement instead of paging.
 const SORT_SQL: Record<NonNullable<SearchFilter["sort"]>, string> = {
   NEWEST: "posted_at_ms DESC, id ASC",
   PRICE_ASC: "price_amount ASC, id ASC",
@@ -109,31 +114,29 @@ function whereSqlFor(f: SearchFilter): { sql: string; binds: unknown[] } {
   return { sql: where.length ? ` WHERE ${where.join(" AND ")}` : "", binds };
 }
 
-/** Query one page of offers. */
-export async function queryOffers(db: D1Database, f: SearchFilter): Promise<CarOffer[]> {
-  const { sql: whereSql, binds } = whereSqlFor(f);
-  const sort = SORT_SQL[f.sort ?? "NEWEST"] ?? SORT_SQL.NEWEST;
-  const limit = Math.min(Math.max(Math.trunc(f.limit ?? 50), 1), 200);
-  const offset = Math.max(Math.trunc(f.offset ?? 0), 0);
-
+function selectSqlFor(
+  f: SearchFilter,
+  whereSql: string,
+  sort: string,
+  tail: string,
+): string {
   if (f.dedup === false) {
-    const sql = `SELECT * FROM offers${whereSql} ORDER BY ${sort} LIMIT ${limit} OFFSET ${offset}`;
-    const { results } = await db.prepare(sql).bind(...binds).all<OfferRow>();
-    return results.map(rowToOffer);
+    return `SELECT * FROM offers${whereSql} ORDER BY ${sort}${tail}`;
   }
-
-  const sql =
+  return (
     `WITH filtered AS (SELECT * FROM offers${whereSql}), ` +
     `ranked AS (SELECT *, ` +
-    `ROW_NUMBER() OVER (PARTITION BY COALESCE(dedup_key, id) ORDER BY posted_at_ms DESC, id) AS _rn, ` +
+    `ROW_NUMBER() OVER (PARTITION BY COALESCE(dedup_key, id) ` +
+    `ORDER BY posted_at_ms DESC, id) AS _rn, ` +
     `COUNT(*) OVER (PARTITION BY COALESCE(dedup_key, id)) AS _dup_count, ` +
     `GROUP_CONCAT(source_id) OVER (PARTITION BY COALESCE(dedup_key, id)) AS _dup_sources ` +
     `FROM filtered) ` +
-    `SELECT * FROM ranked WHERE _rn = 1 ORDER BY ${sort} LIMIT ${limit} OFFSET ${offset}`;
+    `SELECT * FROM ranked WHERE _rn = 1 ORDER BY ${sort}${tail}`
+  );
+}
 
-  type DedupRow = OfferRow & { _dup_count: number; _dup_sources: string | null };
-  const { results } = await db.prepare(sql).bind(...binds).all<DedupRow>();
-  return results.map((r) => {
+function rowsToOffers(rows: QueryRow[]): CarOffer[] {
+  return rows.map((r) => {
     const offer = rowToOffer(r);
     const count = r._dup_count ?? 1;
     if (count > 1) {
@@ -142,6 +145,34 @@ export async function queryOffers(db: D1Database, f: SearchFilter): Promise<CarO
     }
     return offer;
   });
+}
+
+/** Query one legacy offset page of offers. */
+export async function queryOffers(db: D1Database, f: SearchFilter): Promise<CarOffer[]> {
+  const { sql: whereSql, binds } = whereSqlFor(f);
+  const sort = SORT_SQL[f.sort ?? "NEWEST"] ?? SORT_SQL.NEWEST;
+  const limit = Math.min(Math.max(Math.trunc(f.limit ?? 50), 1), 200);
+  const offset = Math.max(Math.trunc(f.offset ?? 0), 0);
+  const sql = selectSqlFor(f, whereSql, sort, ` LIMIT ${limit} OFFSET ${offset}`);
+  const { results } = await db.prepare(sql).bind(...binds).all<QueryRow>();
+  return rowsToOffers(results);
+}
+
+/**
+ * Query one stable matching set in a single SQL statement. One extra row is requested so
+ * callers can reject oversized result sets instead of silently returning a partial list.
+ */
+export async function queryCompleteOffers(
+  db: D1Database,
+  f: SearchFilter,
+  maxResults: number,
+): Promise<CarOffer[]> {
+  const { sql: whereSql, binds } = whereSqlFor(f);
+  const sort = SORT_SQL[f.sort ?? "NEWEST"] ?? SORT_SQL.NEWEST;
+  const safeMax = Math.max(Math.trunc(maxResults), 1);
+  const sql = selectSqlFor(f, whereSql, sort, ` LIMIT ${safeMax + 1}`);
+  const { results } = await db.prepare(sql).bind(...binds).all<QueryRow>();
+  return rowsToOffers(results);
 }
 
 /** Count all matching raw rows or de-duplicated groups before pagination. */
