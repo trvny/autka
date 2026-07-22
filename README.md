@@ -27,9 +27,9 @@ from the USA.
 ## Status
 
 Runnable scaffold. Search → filter → list → detail → import-cost breakdown works
-end-to-end today against a built-in sample data source. Live marketplace data comes
-from the backend's compliant feeds plus deep-links into each site's own search — see
-[Data sourcing](docs/INTEGRATION.md).
+end-to-end. Debug builds can use opt-in sample data; release builds and the production
+Worker keep mock offers disabled. Live marketplace data requires a licensed, partner, or
+seller-provided feed. Sources without one remain deep-links into their own search pages.
 
 ## Repository layout
 
@@ -37,8 +37,8 @@ This is a monorepo:
 
 ```
 /            Android app (Autka) — Kotlin, Compose, root Gradle project
-/backend     Cloudflare Workers backend — TypeScript, D1, R2 (see backend/README.md)
-/docs        Architecture, data sourcing, releasing, open items
+/backend     Cloudflare Workers backend — TypeScript, D1, R2
+/docs        Architecture, sourcing, releasing, open items
 ```
 
 ## Build & run
@@ -46,8 +46,8 @@ This is a monorepo:
 Requires Android Studio (Ladybug or newer) and JDK 17.
 
 ```bash
-./gradlew assembleDebug      # build the debug APK
-./gradlew installDebug       # install on a connected device/emulator
+./gradlew assembleDebug
+./gradlew installDebug
 ```
 
 Or open the folder in Android Studio and hit Run. First sync downloads dependencies.
@@ -57,10 +57,11 @@ Or open the folder in Android Studio and hit Run. First sync downloads dependenc
 | | |
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | App layers, currency, import cost, map, de-dup, localization, versions, CI/CD |
-| [`docs/INTEGRATION.md`](docs/INTEGRATION.md) | Data sourcing: compliant feeds vs. deep-links, and why Autka doesn't scrape |
-| [`docs/RELEASING.md`](docs/RELEASING.md) | Cutting a release — signing, Google Play, F-Droid |
-| [`docs/TODO.md`](docs/TODO.md) | Open `TODO(verify)` items and blockers |
-| [`backend/README.md`](backend/README.md) | Backend service details |
+| [`docs/INTEGRATION.md`](docs/INTEGRATION.md) | Compliant feeds vs. deep-links, and why Autka doesn't scrape |
+| [`docs/SOURCES.md`](docs/SOURCES.md) | Vetted API/feed candidates and recommended acquisition order |
+| [`docs/RELEASING.md`](docs/RELEASING.md) | Signing, Google Play and F-Droid release process |
+| [`docs/TODO.md`](docs/TODO.md) | Remaining blockers and verification work |
+| [`backend/README.md`](backend/README.md) | Backend API, ingestion and operations |
 
 ## License
 
