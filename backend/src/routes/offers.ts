@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import type { SearchFilter, FuelType, Transmission, Region } from "../lib/types";
-import { countOffers, queryOffers, getOffer } from "../db/offers";
+import { countOffers, queryCompleteOffers, queryOffers, getOffer } from "../db/offers";
 import { ALL_SOURCES } from "../ingest/runner";
 
 export const offersRouter = new Hono<{ Bindings: Env }>();
 
+const COMPLETE_RESULTS_LIMIT = 5000;
 const FUEL_TYPES: readonly FuelType[] = [
   "PETROL", "DIESEL", "HYBRID", "PLUGIN_HYBRID", "ELECTRIC", "LPG", "OTHER", "UNKNOWN",
 ];
@@ -59,14 +60,26 @@ offersRouter.get("/offers", async (c) => {
     offset: num(q.offset),
   };
 
-  const [offers, count] = await Promise.all([
-    queryOffers(c.env.DB, filter),
-    countOffers(c.env.DB, filter),
-  ]);
   const warnings = [
     ...(priceFilterRequested ? ["price_filter_applied_client_side"] : []),
     ...(priceSortRequested ? ["price_sort_applied_client_side"] : []),
   ];
+
+  if (q.complete === "true") {
+    const offers = await queryCompleteOffers(c.env.DB, filter, COMPLETE_RESULTS_LIMIT);
+    if (offers.length > COMPLETE_RESULTS_LIMIT) {
+      return c.json({
+        error: "complete_result_limit_exceeded",
+        limit: COMPLETE_RESULTS_LIMIT,
+      }, 422);
+    }
+    return c.json({ offers, count: offers.length, ...(warnings.length ? { warnings } : {}) });
+  }
+
+  const [offers, count] = await Promise.all([
+    queryOffers(c.env.DB, filter),
+    countOffers(c.env.DB, filter),
+  ]);
   return c.json({ offers, count, ...(warnings.length ? { warnings } : {}) });
 });
 
