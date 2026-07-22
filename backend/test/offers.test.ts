@@ -1,7 +1,7 @@
 import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import { describe, it, expect, beforeAll } from "vitest";
 import worker from "../src/index";
-import { upsertOffers } from "../src/db/offers";
+import { queryOffers, upsertOffers } from "../src/db/offers";
 
 async function call(path: string, init?: RequestInit) {
   const ctx = createExecutionContext();
@@ -111,20 +111,21 @@ describe("backend", () => {
       thumbnailUrl: null,
       imageUrls: [] as string[],
       listingUrl: `https://example.test/tie/${suffix}`,
-      postedAtEpochMs: null,
+      postedAtEpochMs: 123,
       latitude: null,
       longitude: null,
     }));
     await upsertOffers(env.DB, tied);
 
-    const first = await call("/offers?make=TieMake&dedup=false&sort=NEWEST&limit=2&offset=0");
-    const second = await call("/offers?make=TieMake&dedup=false&sort=NEWEST&limit=2&offset=2");
-    const third = await call("/offers?make=TieMake&dedup=false&sort=NEWEST&limit=2&offset=4");
+    const pages = await Promise.all([0, 2, 4].map((offset) => queryOffers(env.DB, {
+      make: "TieMake",
+      dedup: false,
+      sort: "NEWEST",
+      limit: 2,
+      offset,
+    })));
 
-    const page1 = await first.json() as { offers: { id: string }[] };
-    const page2 = await second.json() as { offers: { id: string }[] };
-    const page3 = await third.json() as { offers: { id: string }[] };
-    expect([...page1.offers, ...page2.offers, ...page3.offers].map((o) => o.id))
+    expect(pages.flat().map((offer) => offer.id))
       .toEqual(["tie:a", "tie:b", "tie:c", "tie:d", "tie:e"]);
   });
 
