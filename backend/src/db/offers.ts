@@ -1,6 +1,5 @@
 import type { CarOffer, SearchFilter } from "../lib/types";
 
-// Row shape as stored in D1 (snake_case columns).
 interface OfferRow {
   id: string;
   source_id: string;
@@ -57,11 +56,8 @@ const SORT_SQL: Record<NonNullable<SearchFilter["sort"]>, string> = {
 };
 
 /**
- * Heuristic de-duplication fingerprint. The same car listed on multiple marketplaces
- * should collapse into one. Uses normalized make/model/year/fuel/transmission and a
- * coarse mileage bucket. Price is intentionally excluded (it legitimately differs
- * across sellers/sites, and currencies differ with no rates here). When core fields
- * are missing we fall back to the offer's own id so incomplete rows never merge.
+ * Heuristic de-duplication fingerprint. Price is intentionally excluded because it may
+ * differ between sites and currencies. Incomplete records remain unique.
  */
 function dedupKey(o: CarOffer): string {
   if (o.make && o.model && o.year != null) {
@@ -82,8 +78,8 @@ function buildWhere(f: SearchFilter): { where: string[]; binds: unknown[] } {
   }
   if (f.make) { where.push("make = ?"); binds.push(f.make); }
   if (f.model) { where.push("model = ?"); binds.push(f.model); }
-  if (f.minPrice != null) { where.push("price_amount >= ?"); binds.push(f.minPrice); }
-  if (f.maxPrice != null) { where.push("price_amount <= ?"); binds.push(f.maxPrice); }
+  // Price filters are deliberately not applied here. price_amount contains native PLN,
+  // EUR or USD values, so comparing it without a normalized price column is incorrect.
   if (f.minYear != null) { where.push("year >= ?"); binds.push(f.minYear); }
   if (f.maxYear != null) { where.push("year <= ?"); binds.push(f.maxYear); }
   if (f.maxMileageKm != null) { where.push("mileage_km <= ?"); binds.push(f.maxMileageKm); }
@@ -106,20 +102,17 @@ function buildWhere(f: SearchFilter): { where: string[]; binds: unknown[] } {
   return { where, binds };
 }
 
-/**
- * Query offers with a parameterized filter. All inputs are bound, never interpolated
- * (LIMIT/OFFSET are clamped numbers, safe to inline).
- *
- * By default duplicates across sources are collapsed: one representative per dedup_key
- * (the most recently posted), annotated with listingCount and the distinct sources.
- * Pass `dedup: false` to get every raw row.
- */
-export async function queryOffers(db: D1Database, f: SearchFilter): Promise<CarOffer[]> {
+function whereSqlFor(f: SearchFilter): { sql: string; binds: unknown[] } {
   const { where, binds } = buildWhere(f);
-  const whereSql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+  return { sql: where.length ? ` WHERE ${where.join(" AND ")}` : "", binds };
+}
+
+/** Query one page of offers. */
+export async function queryOffers(db: D1Database, f: SearchFilter): Promise<CarOffer[]> {
+  const { sql: whereSql, binds } = whereSqlFor(f);
   const sort = SORT_SQL[f.sort ?? "NEWEST"] ?? SORT_SQL.NEWEST;
-  const limit = Math.min(Math.max(f.limit ?? 50, 1), 200);
-  const offset = Math.max(f.offset ?? 0, 0);
+  const limit = Math.min(Math.max(Math.trunc(f.limit ?? 50), 1), 200);
+  const offset = Math.max(Math.trunc(f.offset ?? 0), 0);
 
   if (f.dedup === false) {
     const sql = `SELECT * FROM offers${whereSql} ORDER BY ${sort} LIMIT ${limit} OFFSET ${offset}`;
@@ -127,8 +120,6 @@ export async function queryOffers(db: D1Database, f: SearchFilter): Promise<CarO
     return results.map(rowToOffer);
   }
 
-  // Collapse duplicates with window functions: pick the newest row per dedup_key,
-  // and carry the group size + concatenated sources alongside it.
   const sql =
     `WITH filtered AS (SELECT * FROM offers${whereSql}), ` +
     `ranked AS (SELECT *, ` +
@@ -151,6 +142,18 @@ export async function queryOffers(db: D1Database, f: SearchFilter): Promise<CarO
   });
 }
 
+/** Count all matching raw rows or de-duplicated groups before pagination. */
+export async function countOffers(db: D1Database, f: SearchFilter): Promise<number> {
+  const { sql: whereSql, binds } = whereSqlFor(f);
+  const expression = f.dedup === false
+    ? "COUNT(*)"
+    : "COUNT(DISTINCT COALESCE(dedup_key, id))";
+  const row = await db.prepare(
+    `SELECT ${expression} AS count FROM offers${whereSql}`,
+  ).bind(...binds).first<{ count: number }>();
+  return Number(row?.count ?? 0);
+}
+
 export async function getOffer(db: D1Database, id: string): Promise<CarOffer | null> {
   const row = await db.prepare("SELECT * FROM offers WHERE id = ?").bind(id).first<OfferRow>();
   return row ? rowToOffer(row) : null;
@@ -168,6 +171,7 @@ export async function upsertOffers(db: D1Database, offers: CarOffer[]): Promise<
        posted_at_ms, fetched_at_ms, dedup_key, latitude, longitude
      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(id) DO UPDATE SET
+       source_id=excluded.source_id,
        title=excluded.title, make=excluded.make, model=excluded.model,
        year=excluded.year, mileage_km=excluded.mileage_km,
        price_amount=excluded.price_amount, price_currency=excluded.price_currency,
@@ -188,4 +192,18 @@ export async function upsertOffers(db: D1Database, offers: CarOffer[]): Promise<
   );
   await db.batch(batch);
   return offers.length;
+}
+
+/**
+ * A successful source fetch is treated as a complete snapshot. Remove rows from that
+ * source that were not refreshed during the run, so sold/deleted listings disappear.
+ */
+export async function deleteOffersNotSeenSince(
+  db: D1Database,
+  sourceId: string,
+  runStartedAtMs: number,
+): Promise<void> {
+  await db.prepare(
+    "DELETE FROM offers WHERE source_id = ? AND fetched_at_ms < ?",
+  ).bind(sourceId, runStartedAtMs).run();
 }
