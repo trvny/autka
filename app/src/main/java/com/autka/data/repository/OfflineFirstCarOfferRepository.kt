@@ -27,24 +27,29 @@ class OfflineFirstCarOfferRepository @Inject constructor(
         dao.observeById(id).map { it?.toModel() }
 
     override suspend fun refresh(filter: SearchFilter): List<String> = coroutineScope {
-        val active = sources.filter { source ->
-            source.isEnabled &&
-                (filter.sourceIds.isEmpty() || source.sourceId in filter.sourceIds)
-        }
-        // Each coroutine returns its own (source, result) pair, so there is no shared
-        // mutable state across the concurrent fetches.
+        // CarOfferSource represents a transport (backend, local demo, etc.), not a
+        // marketplace. A marketplace filter such as "otomoto" must still query the
+        // backend transport, which forwards that filter to the server.
+        val active = sources.filter { it.isEnabled }
         val outcomes = active.map { source ->
             async { source to runCatching { source.fetch(filter) } }
         }.awaitAll()
 
+        val fetchedAt = System.currentTimeMillis()
         val results = outcomes.mapNotNull { (_, result) -> result.getOrNull() }.flatten()
         if (results.isNotEmpty()) {
-            dao.upsertAll(results.map { it.toEntity() })
+            dao.upsertAll(results.map { it.toEntity(fetchedAt) })
         }
+
+        // Keep offline data useful, but do not let deleted listings live forever.
+        // Server-side ingestion removes missing offers immediately after a successful
+        // full snapshot; this is a second, conservative safety net for old app caches.
+        dao.deleteStale(fetchedAt - LOCAL_CACHE_MAX_AGE_MS)
+
         outcomes.filter { it.second.isFailure }.map { it.first.sourceId }
     }
 
-    override fun availableSources(): List<SourceInfo> =
-        sources.map { SourceInfo(it.sourceId, it.displayName, it.isEnabled) }
-            .sortedBy { it.displayName }
+    private companion object {
+        const val LOCAL_CACHE_MAX_AGE_MS = 7L * 24L * 60L * 60L * 1_000L
+    }
 }
