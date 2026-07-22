@@ -27,22 +27,37 @@ class BackendCarOfferSource @Inject constructor(
             SortOrder.PRICE_ASC, SortOrder.PRICE_DESC -> SortOrder.NEWEST
             else -> filter.sort
         }
-        val resp = api.offers(
-            query = filter.query.ifBlank { null },
-            make = filter.make,
-            model = filter.model,
-            minPrice = null,
-            maxPrice = null,
-            minYear = filter.minYear,
-            maxYear = filter.maxYear,
-            maxMileageKm = filter.maxMileageKm,
-            fuelTypes = filter.fuelTypes.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
-            transmissions = filter.transmissions.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
-            regions = filter.regions.joinToString(",") { it.name },
-            sources = filter.sourceIds.takeIf { it.isNotEmpty() }?.joinToString(","),
-            sort = serverSort.name,
-            limit = 200,
-        )
-        return resp.offers.map { it.toModel() }
+
+        val all = mutableListOf<OfferDto>()
+        var offset = 0
+        var total: Int
+        do {
+            val page = api.offers(
+                query = filter.query.ifBlank { null },
+                make = filter.make,
+                model = filter.model,
+                minPrice = null,
+                maxPrice = null,
+                minYear = filter.minYear,
+                maxYear = filter.maxYear,
+                maxMileageKm = filter.maxMileageKm,
+                fuelTypes = filter.fuelTypes.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
+                transmissions = filter.transmissions.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
+                regions = filter.regions.joinToString(",") { it.name },
+                sources = filter.sourceIds.takeIf { it.isNotEmpty() }?.joinToString(","),
+                sort = serverSort.name,
+                limit = PAGE_SIZE,
+                offset = offset,
+            )
+            total = page.count
+            all += page.offers
+            offset += page.offers.size
+        } while (offset < total && all.isNotEmpty() && all.size == offset)
+
+        return all.map { it.toModel() }
+    }
+
+    private companion object {
+        const val PAGE_SIZE = 200
     }
 }
