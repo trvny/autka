@@ -1,58 +1,58 @@
 # Autka — open work
 
-Tracks the load-bearing gaps. Architecture is settled; what's left is data, verified
-constants, and verified deep-link parameters. See `INTEGRATION.md` for the
-data-sourcing design and the root `README.md` for the overview.
+Tracks the load-bearing gaps. Architecture is settled; what's left is licensed data,
+normalized server-side pricing, verified import inputs and a few deep-link parameters.
+See `INTEGRATION.md` for the sourcing boundary and `SOURCES.md` for vetted candidates.
 
 ## Hard product blockers
 
-These two gate any real (non-demo) usefulness:
+1. **Compliant feed acquisition.** `backend/src/ingest/runner.ts` knows about `mock`,
+   `otomoto`, `olx`, `facebook` and `usAuction`, but the real marketplace adapters remain
+   disabled placeholders. Mock data is opt-in for debug/tests and disabled in release and
+   production. Until at least one licensed, partner, or seller-provided feed lands, the
+   production `GET /offers` catalogue is empty and the app relies on deep-links.
 
-1. **Compliant feed acquisition.** `backend/src/ingest/runner.ts` `ALL_SOURCES` is
-   `mock`, `otomoto`, `olx`, `facebook`, `usAuction` — all but `mock` are disabled
-   stubs with no licensed/partner feed behind them. Until at least one real feed lands,
-   the live `GET /offers` path returns nothing and the app runs on sample data + the
-   deep-link layer only. No scraping (OLX Group ToS, EU database rights, Meta ToS).
+   Recommended order: direct importer/dealer snapshot + Auto.dev for the first USA MVP,
+   mobile.de Search API for Europe, then evaluate MarketCheck or AutoUncle B2B. See
+   `SOURCES.md` for access constraints and links.
 
-2. **Verified import-cost constants + shipping ranges.** `core/model/ImportCostEstimate.kt`
-   uses indicative constants: `EU_CUSTOMS_DUTY_RATE = 0.10`, `PL_VAT_RATE = 0.23`, and a
-   caller-supplied `shippingUsd`. The 2026 excise (akcyza) table is drivetrain-/capacity-
-   aware and considered good; duty, VAT applicability edge cases, and realistic
-   door-to-door shipping bands still need sourcing before the landed-cost total is
-   trustworthy.
+2. **Normalized price + scalable pagination.** Native `price_amount` values are mixed
+   PLN/EUR/USD. The Android app currently requests up to 200 rows and correctly applies
+   NBP conversion, price filters and price sorting locally. This is safe for the current
+   catalogue, but it is not a complete large-dataset solution. Add a backend normalized
+   price column (with rate and rate timestamp), cursor pagination, and tests proving that
+   price order remains correct across page boundaries.
 
-> **Strategic note:** partnering with a US-import broker plausibly closes both at once
-> (a feed, real shipping figures, and lead-gen revenue). Brokers (usaimport.pl,
-> usacars.net.pl, mattyusa.pl, autopan.pl) are brochure/service sites surfaced on the
-> offer detail screen — not results-screen sources.
+3. **Verified import-cost inputs + shipping ranges.** `ImportCostEstimate.kt` uses an
+   indicative 10% customs rate, 23% VAT and caller-supplied shipping. The 2026 Polish
+   excise table is drivetrain/capacity-aware; customs classification, origin relief,
+   VAT edge cases and realistic door-to-door shipping bands still require authoritative
+   inputs before the total can be presented as more than an estimate.
+
+> **Strategic note:** a US-import broker partnership can close several gaps at once:
+> unique inventory, real shipping figures, lead attribution and a revenue model.
 
 ## Deep-link parameter verification
 
-`feature/external/MarketplaceSearchLinks.kt` — confirmed params are marked verified;
-the rest carry `TODO(verify)` (a wrong key silently lands on an unfiltered page):
+`feature/external/MarketplaceSearchLinks.kt` marks uncertain parameters with
+`TODO(verify)`. A wrong key silently opens an unfiltered page, so do not emit guesses.
 
-- **Otomoto:** `utm_source` affiliate param unconfirmed (line ~90); real affiliate
-  param TBD on joining the program.
-- **AutoUncle:** remaining fuel values + `s[max_km]` / `s[min_km]` parity; plug-in
-  hybrid slug.
-- **AutoTrader.pl:** `diesel`/`lpg`/plug-in fuel values (petrol/electric/`hybrydowy`
-  verified — note `hybrydowy`, **not** `hybryda`).
-- **Autoplac:** fuel values beyond GASOLINE/DIESEL/HYBRID.
-- **OLX:** free-text search key; sort keys (`mileage`/`year`).
-- **US sites (IAAI, Cars.com, AutoTrader.com):** make/model path form and price-bucket
-  params.
+- **Otomoto:** affiliate parameter pending programme access.
+- **AutoUncle:** remaining fuel values, mileage parity and plug-in hybrid slug.
+- **AutoTrader.pl:** diesel/LPG/plug-in values.
+- **Autoplac:** fuel values beyond gasoline/diesel/hybrid.
+- **OLX:** free-text and mileage/year sort keys.
+- **US sites:** make/model paths and price buckets for IAAI, Cars.com and AutoTrader.com.
 
 ## Backend hygiene
 
-- `worker-configuration.d.ts` stays generated in CI, never committed (it's ~541KB and
-  drifts on every wrangler bump).
-- Keep `CarOffer` parity between `backend/src/lib/types.ts` and
-  `com.autka.core.model.CarOffer` — the #1 seam bug.
+- `worker-configuration.d.ts` remains generated in CI and uncommitted.
+- Keep `backend/src/lib/types.ts` and Android `CarOffer` in sync.
+- Every enabled ingest adapter must explicitly declare full-snapshot or delta semantics;
+  current cleanup assumes a complete snapshot after each successful fetch.
 
 ## Tests still wanted
 
-- Repository merge / source failure-isolation.
+- Repository merge and source failure-isolation.
 - Mapper round-trips (entity ↔ domain).
-
-(Import-cost calculator and `applyFilter`/`sortComparator` unit tests have landed;
-exchange rates are cached across restarts via DataStore.)
+- Normalized-price pagination across currencies once that backend work lands.
