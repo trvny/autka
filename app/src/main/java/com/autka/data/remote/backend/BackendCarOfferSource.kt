@@ -28,38 +28,22 @@ class BackendCarOfferSource @Inject constructor(
             else -> filter.sort
         }
 
-        val all = mutableListOf<OfferDto>()
-        var offset = 0
-        var total: Int
-        var pageSize: Int
-        do {
-            val page = api.offers(
-                query = filter.query.ifBlank { null },
-                make = filter.make,
-                model = filter.model,
-                minPrice = null,
-                maxPrice = null,
-                minYear = filter.minYear,
-                maxYear = filter.maxYear,
-                maxMileageKm = filter.maxMileageKm,
-                fuelTypes = filter.fuelTypes.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
-                transmissions = filter.transmissions.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
-                regions = filter.regions.joinToString(",") { it.name },
-                sources = filter.sourceIds.takeIf { it.isNotEmpty() }?.joinToString(","),
-                sort = serverSort.name,
-                limit = PAGE_SIZE,
-                offset = offset,
-            )
-            total = page.count
-            pageSize = page.offers.size
-            all += page.offers
-            offset += pageSize
-        } while (pageSize > 0 && offset < total)
-
-        return all.map { it.toModel() }
-    }
-
-    private companion object {
-        const val PAGE_SIZE = 200
+        val response = api.offers(
+            query = filter.query.ifBlank { null },
+            make = filter.make,
+            model = filter.model,
+            minPrice = null,
+            maxPrice = null,
+            minYear = filter.minYear,
+            maxYear = filter.maxYear,
+            maxMileageKm = filter.maxMileageKm,
+            fuelTypes = filter.fuelTypes.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
+            transmissions = filter.transmissions.takeIf { it.isNotEmpty() }?.joinToString(",") { it.name },
+            regions = filter.regions.joinToString(",") { it.name },
+            sources = filter.sourceIds.takeIf { it.isNotEmpty() }?.joinToString(","),
+            sort = serverSort.name,
+            complete = true,
+        )
+        return response.offers.map { it.toModel() }
     }
 }
