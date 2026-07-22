@@ -10,8 +10,8 @@ import org.junit.Test
 class BackendCarOfferSourceTest {
 
     @Test
-    fun `fetch loads every page before local price operations`() = runTest {
-        val api = PagingApi(total = 450)
+    fun `fetch requests one complete snapshot before local price operations`() = runTest {
+        val api = RecordingApi(total = 450)
         val source = BackendCarOfferSource(api)
 
         val offers = source.fetch(
@@ -23,16 +23,22 @@ class BackendCarOfferSourceTest {
         )
 
         assertEquals(450, offers.size)
-        assertEquals(listOf(0, 200, 400), api.offsets)
+        assertEquals(1, api.callCount)
+        assertEquals(listOf(true), api.completeFlags)
+        assertEquals(listOf(null), api.offsets)
+        assertEquals(listOf(null), api.limits)
         assertTrue(api.minPrices.all { it == null })
         assertTrue(api.maxPrices.all { it == null })
         assertTrue(api.sorts.all { it == SortOrder.NEWEST.name })
     }
 
-    private class PagingApi(
+    private class RecordingApi(
         private val total: Int,
     ) : BackendApi {
-        val offsets = mutableListOf<Int>()
+        var callCount = 0
+        val completeFlags = mutableListOf<Boolean?>()
+        val offsets = mutableListOf<Int?>()
+        val limits = mutableListOf<Int?>()
         val minPrices = mutableListOf<Double?>()
         val maxPrices = mutableListOf<Double?>()
         val sorts = mutableListOf<String?>()
@@ -51,18 +57,19 @@ class BackendCarOfferSourceTest {
             regions: String?,
             sources: String?,
             sort: String?,
+            complete: Boolean?,
             limit: Int?,
             offset: Int?,
         ): OffersResponse {
-            val start = offset ?: 0
-            val pageSize = limit ?: 50
-            val end = minOf(start + pageSize, total)
-            offsets += start
+            callCount += 1
+            completeFlags += complete
+            offsets += offset
+            limits += limit
             minPrices += minPrice
             maxPrices += maxPrice
             sorts += sort
             return OffersResponse(
-                offers = (start until end).map(::dto),
+                offers = (0 until total).map(::dto),
                 count = total,
             )
         }
