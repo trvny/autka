@@ -93,6 +93,43 @@ describe("backend", () => {
     expect(body.count).toBeGreaterThan(body.offers.length);
   });
 
+  it("uses a deterministic id tie-breaker across offset pages", async () => {
+    const tied = ["e", "a", "d", "b", "c"].map((suffix) => ({
+      id: `tie:${suffix}`,
+      sourceId: "tie",
+      title: `Tie ${suffix}`,
+      make: "TieMake",
+      model: suffix,
+      year: 2020,
+      mileageKm: 10_000,
+      price: { amount: 50_000, currency: "PLN" as const },
+      fuelType: "PETROL" as const,
+      transmission: "MANUAL" as const,
+      powerHp: null,
+      location: null,
+      region: "POLAND" as const,
+      thumbnailUrl: null,
+      imageUrls: [] as string[],
+      listingUrl: `https://example.test/tie/${suffix}`,
+      postedAtEpochMs: null,
+      latitude: null,
+      longitude: null,
+    }));
+    await upsertOffers(env.DB, tied);
+
+    const first = await call("/offers?make=TieMake&dedup=false&sort=NEWEST&limit=2&offset=0");
+    const second = await call("/offers?make=TieMake&dedup=false&sort=NEWEST&limit=2&offset=2");
+    const third = await call("/offers?make=TieMake&dedup=false&sort=NEWEST&limit=2&offset=4");
+    const ids = [first, second, third].flatMap(async () => []);
+    void ids;
+
+    const page1 = await first.json() as { offers: { id: string }[] };
+    const page2 = await second.json() as { offers: { id: string }[] };
+    const page3 = await third.json() as { offers: { id: string }[] };
+    expect([...page1.offers, ...page2.offers, ...page3.offers].map((o) => o.id))
+      .toEqual(["tie:a", "tie:b", "tie:c", "tie:d", "tie:e"]);
+  });
+
   it("does not silently compare native amounts across currencies", async () => {
     const res = await call("/offers?minPrice=100000&sort=PRICE_ASC&limit=200");
     const body = await res.json() as { offers: unknown[]; warnings?: string[] };
