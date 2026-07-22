@@ -31,6 +31,7 @@ class BackendCarOfferSource @Inject constructor(
         val all = mutableListOf<OfferDto>()
         var offset = 0
         var total: Int
+        var pageSize: Int
         do {
             val page = api.offers(
                 query = filter.query.ifBlank { null },
@@ -50,9 +51,10 @@ class BackendCarOfferSource @Inject constructor(
                 offset = offset,
             )
             total = page.count
+            pageSize = page.offers.size
             all += page.offers
-            offset += page.offers.size
-        } while (offset < total && all.isNotEmpty() && all.size == offset)
+            offset += pageSize
+        } while (pageSize > 0 && offset < total)
 
         return all.map { it.toModel() }
     }
