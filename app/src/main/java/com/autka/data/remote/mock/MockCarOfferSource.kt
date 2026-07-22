@@ -1,5 +1,6 @@
 package com.autka.data.remote.mock
 
+import com.autka.BuildConfig
 import com.autka.core.model.CarOffer
 import com.autka.core.model.Currency
 import com.autka.core.model.FuelType
@@ -13,24 +14,21 @@ import com.autka.data.remote.SourceId
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 
-/**
- * Always-on sample source so the app runs end-to-end with zero configuration.
- * Replace/augment with real adapters as you wire up data feeds.
- */
+/** Debug-only sample source so the app can run end-to-end with zero configuration. */
 class MockCarOfferSource @Inject constructor() : CarOfferSource {
     override val sourceId = SourceId.MOCK
     override val displayName = "Sample data"
-    override val isEnabled = true
+    override val isEnabled = BuildConfig.ENABLE_MOCK_SOURCE
 
     override suspend fun fetch(filter: SearchFilter): List<CarOffer> {
-        delay(400) // simulate network latency
-        return sample.filter { offer ->
-            (filter.make == null || offer.make.equals(filter.make, ignoreCase = true)) &&
-                (filter.maxPrice == null || offer.price.amount <= filter.maxPrice) &&
-                (filter.minYear == null || (offer.year ?: 0) >= filter.minYear) &&
-                offer.region in filter.regions &&
-                (filter.query.isBlank() || offer.title.contains(filter.query, ignoreCase = true))
+        if (!isEnabled || (filter.sourceIds.isNotEmpty() && sourceId !in filter.sourceIds)) {
+            return emptyList()
         }
+        delay(400) // simulate network latency
+
+        // Return the complete tiny snapshot. The shared client-side filter performs all
+        // comparisons, including mixed-currency price filtering, consistently.
+        return sample
     }
 
     private val sample: List<CarOffer> = listOf(
