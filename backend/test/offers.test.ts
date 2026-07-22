@@ -93,6 +93,41 @@ describe("backend", () => {
     expect(body.count).toBeGreaterThan(body.offers.length);
   });
 
+  it("returns a complete matching set in one response", async () => {
+    const offers = Array.from({ length: 250 }, (_, index) => ({
+      id: `complete:${index.toString().padStart(3, "0")}`,
+      sourceId: "complete",
+      title: `Complete ${index}`,
+      make: "CompleteMake",
+      model: `Model ${index}`,
+      year: 2020,
+      mileageKm: index,
+      price: { amount: 50_000 + index, currency: "PLN" as const },
+      fuelType: "PETROL" as const,
+      transmission: "MANUAL" as const,
+      powerHp: null,
+      location: null,
+      region: "POLAND" as const,
+      thumbnailUrl: null,
+      imageUrls: [] as string[],
+      listingUrl: `https://example.test/complete/${index}`,
+      postedAtEpochMs: 123,
+      latitude: null,
+      longitude: null,
+    }));
+    await upsertOffers(env.DB, offers);
+
+    const res = await call(
+      "/offers?make=CompleteMake&dedup=false&complete=true&limit=1&offset=200",
+    );
+    const body = await res.json() as { offers: { id: string }[]; count: number };
+    expect(res.status).toBe(200);
+    expect(body.count).toBe(250);
+    expect(body.offers).toHaveLength(250);
+    expect(body.offers[0].id).toBe("complete:000");
+    expect(body.offers[249].id).toBe("complete:249");
+  });
+
   it("uses a deterministic id tie-breaker across offset pages", async () => {
     const tied = ["e", "a", "d", "b", "c"].map((suffix) => ({
       id: `tie:${suffix}`,
@@ -173,7 +208,10 @@ describe("backend", () => {
     ]);
 
     const deduped = await call("/offers?make=VW");
-    const body = await deduped.json() as { offers: { id: string; listingCount?: number; otherSources?: string[] }[]; count: number };
+    const body = await deduped.json() as {
+      offers: { id: string; listingCount?: number; otherSources?: string[] }[];
+      count: number;
+    };
     expect(body.count).toBe(1);
     expect(body.offers[0].listingCount).toBe(2);
     expect(body.offers[0].otherSources?.sort()).toEqual(["olx", "otomoto"]);
