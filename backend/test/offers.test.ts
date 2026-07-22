@@ -120,8 +120,6 @@ describe("backend", () => {
     const first = await call("/offers?make=TieMake&dedup=false&sort=NEWEST&limit=2&offset=0");
     const second = await call("/offers?make=TieMake&dedup=false&sort=NEWEST&limit=2&offset=2");
     const third = await call("/offers?make=TieMake&dedup=false&sort=NEWEST&limit=2&offset=4");
-    const ids = [first, second, third].flatMap(async () => []);
-    void ids;
 
     const page1 = await first.json() as { offers: { id: string }[] };
     const page2 = await second.json() as { offers: { id: string }[] };
