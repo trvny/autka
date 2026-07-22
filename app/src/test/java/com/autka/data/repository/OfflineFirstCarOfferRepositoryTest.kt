@@ -9,12 +9,14 @@ import com.autka.core.model.SearchFilter
 import com.autka.core.model.Transmission
 import com.autka.data.local.CarOfferDao
 import com.autka.data.local.CarOfferEntity
+import com.autka.data.local.toEntity
 import com.autka.data.remote.CarOfferSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -38,12 +40,30 @@ class OfflineFirstCarOfferRepositoryTest {
         assertNotNull(dao.lastDeleteStaleCutoff)
     }
 
+    @Test
+    fun `disabled transport rows are removed immediately`() = runTest {
+        val oldMock = offer(id = "mock:old", sourceId = "mock").toEntity()
+        val dao = FakeDao(initialRows = listOf(oldMock))
+        val disabledMock = RecordingSource(
+            sourceId = "mock",
+            offers = emptyList(),
+            enabled = false,
+        )
+        val repository = OfflineFirstCarOfferRepository(dao, setOf(disabledMock))
+
+        repository.refresh(SearchFilter())
+
+        assertNull(dao.rows.value.singleOrNull { it.sourceId == "mock" })
+        assertEquals(listOf("mock"), dao.lastDeletedSourceIds)
+    }
+
     private class RecordingSource(
         override val sourceId: String,
         private val offers: List<CarOffer>,
+        private val enabled: Boolean = true,
     ) : CarOfferSource {
         override val displayName = sourceId
-        override val isEnabled = true
+        override val isEnabled = enabled
         var receivedFilter: SearchFilter? = null
 
         override suspend fun fetch(filter: SearchFilter): List<CarOffer> {
@@ -52,9 +72,12 @@ class OfflineFirstCarOfferRepositoryTest {
         }
     }
 
-    private class FakeDao : CarOfferDao {
-        val rows = MutableStateFlow<List<CarOfferEntity>>(emptyList())
+    private class FakeDao(
+        initialRows: List<CarOfferEntity> = emptyList(),
+    ) : CarOfferDao {
+        val rows = MutableStateFlow(initialRows)
         var lastDeleteStaleCutoff: Long? = null
+        var lastDeletedSourceIds: List<String>? = null
 
         override suspend fun upsertAll(offers: List<CarOfferEntity>) {
             val incoming = offers.associateBy { it.id }
@@ -65,6 +88,11 @@ class OfflineFirstCarOfferRepositoryTest {
 
         override fun observeById(id: String): Flow<CarOfferEntity?> =
             MutableStateFlow(rows.value.firstOrNull { it.id == id })
+
+        override suspend fun deleteBySourceIds(sourceIds: List<String>) {
+            lastDeletedSourceIds = sourceIds
+            rows.value = rows.value.filterNot { it.sourceId in sourceIds }
+        }
 
         override suspend fun deleteStale(olderThanEpochMs: Long) {
             lastDeleteStaleCutoff = olderThanEpochMs
