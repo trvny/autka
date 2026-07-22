@@ -10,7 +10,6 @@ async function call(path: string, init?: RequestInit) {
   return res;
 }
 
-// R2-backed responses stream their body; drain it inside the execution context.
 async function getBytes(path: string, init?: RequestInit) {
   const ctx = createExecutionContext();
   const res = await worker.fetch(new Request(`https://x${path}`, init), env, ctx);
@@ -21,8 +20,12 @@ async function getBytes(path: string, init?: RequestInit) {
 
 describe("backend", () => {
   beforeAll(async () => {
-    (env as unknown as { ADMIN_TOKEN: string }).ADMIN_TOKEN = "test-token";
-    // Populate the DB once for all read tests (isolated storage is disabled).
+    const mutableEnv = env as unknown as {
+      ADMIN_TOKEN: string;
+      ENABLE_MOCK_SOURCE: string;
+    };
+    mutableEnv.ADMIN_TOKEN = "test-token";
+    mutableEnv.ENABLE_MOCK_SOURCE = "true";
     const res = await call("/admin/ingest", {
       method: "POST",
       headers: { authorization: "Bearer test-token" },
@@ -49,7 +52,7 @@ describe("backend", () => {
     expect(body.offers.every((o) => o.make === "BMW")).toBe(true);
   });
 
-  it("filters by fuelType (regression: filter was previously ignored)", async () => {
+  it("filters by fuelType", async () => {
     const diesel = await call("/offers?fuelTypes=DIESEL");
     const body = await diesel.json() as { offers: { fuelType: string }[]; count: number };
     expect(body.count).toBeGreaterThan(0);
@@ -65,24 +68,40 @@ describe("backend", () => {
     expect(body.count).toBeGreaterThan(0);
     expect(body.offers.every((o) => o.transmission === "AUTOMATIC")).toBe(true);
 
-    // Mock data has no manual cars, so this is empty (filter is applied, not ignored).
     const manual = await call("/offers?transmissions=MANUAL");
     expect((await manual.json() as { count: number }).count).toBe(0);
 
-    // Invalid value is dropped, not asserted -> all results.
     const bad = await call("/offers?transmissions=NOPE");
     expect(bad.status).toBe(200);
     expect((await bad.json() as { count: number }).count).toBeGreaterThan(0);
   });
 
-  it("tolerates invalid sort/enum params (validate, don't assert)", async () => {
-    const badSort = await call("/offers?sort=garbage");
+  it("tolerates invalid enum and numeric params", async () => {
+    const badSort = await call("/offers?sort=garbage&limit=NaN&offset=nope");
     expect(badSort.status).toBe(200);
     expect((await badSort.json() as { count: number }).count).toBeGreaterThan(0);
 
     const badFuel = await call("/offers?fuelTypes=NOPE");
     expect(badFuel.status).toBe(200);
     expect((await badFuel.json() as { count: number }).count).toBeGreaterThan(0);
+  });
+
+  it("returns total count before limit and offset", async () => {
+    const res = await call("/offers?dedup=false&limit=1&offset=0");
+    const body = await res.json() as { offers: unknown[]; count: number };
+    expect(body.offers).toHaveLength(1);
+    expect(body.count).toBeGreaterThan(body.offers.length);
+  });
+
+  it("does not silently compare native amounts across currencies", async () => {
+    const res = await call("/offers?minPrice=100000&sort=PRICE_ASC&limit=200");
+    const body = await res.json() as { offers: unknown[]; warnings?: string[] };
+    expect(res.status).toBe(200);
+    expect(body.offers.length).toBeGreaterThan(0);
+    expect(body.warnings).toEqual(expect.arrayContaining([
+      "price_filter_applied_client_side",
+      "price_sort_applied_client_side",
+    ]));
   });
 
   it("serves images from R2 with caching headers and 304 support", async () => {
@@ -105,8 +124,7 @@ describe("backend", () => {
     expect(missing.res.status).toBe(404);
   });
 
-  it("collapses cross-source duplicates (dedup)", async () => {
-    // Same car, two marketplaces: identical make/model/year/fuel/trans/mileage-bucket.
+  it("collapses cross-source duplicates", async () => {
     const base = {
       title: "VW Golf 1.6 TDI 2017", make: "VW", model: "Golf", year: 2017,
       mileageKm: 120_000, fuelType: "DIESEL" as const, transmission: "MANUAL" as const,
@@ -120,13 +138,32 @@ describe("backend", () => {
 
     const deduped = await call("/offers?make=VW");
     const body = await deduped.json() as { offers: { id: string; listingCount?: number; otherSources?: string[] }[]; count: number };
-    expect(body.count).toBe(1); // two listings collapsed into one
+    expect(body.count).toBe(1);
     expect(body.offers[0].listingCount).toBe(2);
     expect(body.offers[0].otherSources?.sort()).toEqual(["olx", "otomoto"]);
 
-    // Opting out returns both raw rows.
     const raw = await call("/offers?make=VW&dedup=false");
     expect((await raw.json() as { count: number }).count).toBe(2);
+  });
+
+  it("removes source rows missing from the next successful snapshot", async () => {
+    await upsertOffers(env.DB, [{
+      id: "mock:stale", sourceId: "mock", title: "Sold car", make: "Gone", model: "Now",
+      year: 2020, mileageKm: 1, price: { amount: 1, currency: "PLN" },
+      fuelType: "PETROL", transmission: "MANUAL", powerHp: null,
+      location: null, region: "POLAND", thumbnailUrl: null, imageUrls: [],
+      listingUrl: "https://example.test/stale", postedAtEpochMs: 1,
+      latitude: null, longitude: null,
+    }]);
+    await env.DB.prepare("UPDATE offers SET fetched_at_ms = 0 WHERE id = ?")
+      .bind("mock:stale").run();
+
+    const ingest = await call("/admin/ingest", {
+      method: "POST",
+      headers: { authorization: "Bearer test-token" },
+    });
+    expect(ingest.status).toBe(200);
+    expect((await call("/offers/mock:stale")).status).toBe(404);
   });
 
   it("rejects unauthorized ingest", async () => {
