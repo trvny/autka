@@ -23,6 +23,7 @@ interface BackendApi {
         @Query("regions") regions: String? = null,
         @Query("sources") sources: String? = null,
         @Query("sort") sort: String? = null,
+        @Query("complete") complete: Boolean? = null,
         @Query("limit") limit: Int? = null,
         @Query("offset") offset: Int? = null,
     ): OffersResponse
@@ -42,7 +43,7 @@ interface BackendApi {
 @Serializable
 data class OffersResponse(
     val offers: List<OfferDto>,
-    /** Total matching rows/groups before limit and offset are applied. */
+    /** Total matching rows/groups in this response or before pagination. */
     val count: Int,
 )
 
