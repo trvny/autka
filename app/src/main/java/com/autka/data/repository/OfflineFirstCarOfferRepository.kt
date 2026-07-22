@@ -31,6 +31,13 @@ class OfflineFirstCarOfferRepository @Inject constructor(
         // marketplace. A marketplace filter such as "otomoto" must still query the
         // backend transport, which forwards that filter to the server.
         val active = sources.filter { it.isEnabled }
+        val disabledIds = sources.filterNot { it.isEnabled }.map { it.sourceId }
+        if (disabledIds.isNotEmpty()) {
+            // Remove sample or retired transport rows immediately after an upgrade instead
+            // of leaving them visible until the normal age-based cache cleanup runs.
+            dao.deleteBySourceIds(disabledIds)
+        }
+
         val outcomes = active.map { source ->
             async { source to runCatching { source.fetch(filter) } }
         }.awaitAll()
