@@ -6,6 +6,7 @@ import com.autka.core.model.Currency
 import com.autka.core.model.SearchFilter
 import com.autka.data.repository.CarOfferRepository
 import com.autka.data.repository.ExchangeRateRepository
+import com.autka.data.repository.SourceInfo
 import com.autka.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -26,7 +28,6 @@ class ListingsViewModel @Inject constructor(
     private val filter = MutableStateFlow(SearchFilter())
     private val transient = MutableStateFlow(TransientState())
 
-    // displayCurrency now comes from persisted settings rather than local state.
     val uiState: StateFlow<ListingsUiState> =
         combine(
             repository.observeOffers(),
@@ -41,7 +42,19 @@ class ListingsViewModel @Inject constructor(
                     .sortedWith(sortComparator(f.sort, rates, currency)),
                 filter = f,
                 availableMakes = offers.map { it.make }.distinct().sorted(),
-                availableSources = repository.availableSources(),
+                // Facets describe the actual marketplaces represented by cached offers.
+                // The backend is only a transport and must never appear as a selectable
+                // marketplace id, because no offer has sourceId="backend".
+                availableSources = offers
+                    .map { offer ->
+                        SourceInfo(
+                            id = offer.sourceId,
+                            displayName = offer.sourceId.toSourceDisplayName(),
+                            enabled = true,
+                        )
+                    }
+                    .distinctBy { it.id }
+                    .sortedBy { it.displayName },
                 failedSources = t.failedSources,
                 errorMessage = t.errorMessage,
                 displayCurrency = currency,
@@ -50,7 +63,7 @@ class ListingsViewModel @Inject constructor(
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ListingsUiState(availableSources = repository.availableSources()),
+            initialValue = ListingsUiState(),
         )
 
     init {
@@ -90,6 +103,20 @@ class ListingsViewModel @Inject constructor(
             transient.value = transient.value.copy(isRefreshing = false, failedSources = failed)
         }
     }
+}
+
+private fun String.toSourceDisplayName(): String = when (this) {
+    "mock" -> "Sample data"
+    "otomoto" -> "Otomoto"
+    "olx" -> "OLX"
+    "facebook" -> "Facebook Marketplace"
+    "us_auction" -> "US auctions"
+    else -> split('_', '-')
+        .joinToString(" ") { part ->
+            part.replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecase(Locale.getDefault()) else char.toString()
+            }
+        }
 }
 
 private data class TransientState(
