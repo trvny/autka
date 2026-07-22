@@ -17,11 +17,11 @@ See `INTEGRATION.md` for the sourcing boundary and `SOURCES.md` for vetted candi
    `SOURCES.md` for access constraints and links.
 
 2. **Normalized price + scalable pagination.** Native `price_amount` values are mixed
-   PLN/EUR/USD. The Android app currently requests up to 200 rows and correctly applies
-   NBP conversion, price filters and price sorting locally. This is safe for the current
-   catalogue, but it is not a complete large-dataset solution. Add a backend normalized
-   price column (with rate and rate timestamp), cursor pagination, and tests proving that
-   price order remains correct across page boundaries.
+   PLN/EUR/USD. Android now fetches every offset page and correctly applies NBP conversion,
+   price filters and price sorting over the complete matching set. That preserves correctness
+   for the first live feeds, but downloading the entire result set is not a scalable catalogue
+   design. Add a backend normalized price column (with rate and rate timestamp), cursor
+   pagination, and tests proving that price order remains correct across page boundaries.
 
 3. **Verified import-cost inputs + shipping ranges.** `ImportCostEstimate.kt` uses an
    indicative 10% customs rate, 23% VAT and caller-supplied shipping. The 2026 Polish
