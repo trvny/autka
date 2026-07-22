@@ -47,12 +47,14 @@ function rowToOffer(r: OfferRow): CarOffer {
   };
 }
 
+// Every order ends with a unique key. Offset paging is otherwise allowed to reshuffle
+// rows whose primary sort values tie, causing duplicate or missing offers between pages.
 const SORT_SQL: Record<NonNullable<SearchFilter["sort"]>, string> = {
-  NEWEST: "posted_at_ms DESC",
-  PRICE_ASC: "price_amount ASC",
-  PRICE_DESC: "price_amount DESC",
-  MILEAGE_ASC: "mileage_km ASC",
-  YEAR_DESC: "year DESC",
+  NEWEST: "posted_at_ms DESC, id ASC",
+  PRICE_ASC: "price_amount ASC, id ASC",
+  PRICE_DESC: "price_amount DESC, id ASC",
+  MILEAGE_ASC: "mileage_km ASC, id ASC",
+  YEAR_DESC: "year DESC, id ASC",
 };
 
 /**
