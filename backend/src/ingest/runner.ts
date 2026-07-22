@@ -1,7 +1,7 @@
 import type { IngestSource } from "./source";
 import { mockSource } from "./sources/mock";
 import { otomotoSource, olxSource, facebookSource, usAuctionSource } from "./sources/stubs";
-import { upsertOffers } from "../db/offers";
+import { deleteOffersNotSeenSince, upsertOffers } from "../db/offers";
 import { cacheOfferImages } from "./images";
 
 /** Every source the backend knows about. Add a marketplace by appending here. */
@@ -13,8 +13,7 @@ export const ALL_SOURCES: IngestSource[] = [
   usAuctionSource,
 ];
 
-/** How many ingest_runs rows to keep. The table is debug-only; without a cap it
- * grows unbounded toward the D1 storage limit. */
+/** How many ingest_runs rows to keep. */
 const INGEST_RUNS_KEEP = 500;
 
 export interface IngestResult {
@@ -24,18 +23,13 @@ export interface IngestResult {
   error?: string;
 }
 
-/**
- * Run all enabled sources. Each source is isolated: one failing does not stop the
- * others. Records a row in ingest_runs per source for observability.
- */
+/** Run all enabled sources. A failure in one source does not stop the others. */
 export async function runIngestion(
   env: Env,
   sources: readonly IngestSource[] = ALL_SOURCES,
 ): Promise<IngestResult[]> {
   const enabled = sources.filter((s) => s.isEnabled(env));
   const results = await Promise.all(enabled.map((s) => runOne(env, s)));
-  // Keep the debug table bounded. Best-effort: a cleanup failure must never fail
-  // the ingest itself.
   await pruneIngestRuns(env).catch((err) => {
     console.error(JSON.stringify({
       msg: "ingest_runs_prune_failed",
@@ -48,10 +42,12 @@ export async function runIngestion(
 async function runOne(env: Env, source: IngestSource): Promise<IngestResult> {
   const started = Date.now();
   try {
+    // Source.fetch is a complete snapshot contract. Only after the fetch, image cache,
+    // and upsert all succeed do we remove rows that were not seen in this run.
     const offers = await source.fetch(env);
-    // Cache images to R2 and rewrite URLs (best-effort; never throws).
     const withImages = await Promise.all(offers.map((o) => cacheOfferImages(env, o)));
     const upserted = await upsertOffers(env.DB, withImages);
+    await deleteOffersNotSeenSince(env.DB, source.sourceId, started);
     await recordRun(env, source.sourceId, started, upserted, true, null);
     console.log(JSON.stringify({ msg: "ingest_ok", sourceId: source.sourceId, upserted }));
     return { sourceId: source.sourceId, ok: true, upserted };
@@ -73,7 +69,6 @@ async function recordRun(
   ).bind(sourceId, startedMs, Date.now(), upserted, ok ? 1 : 0, error).run();
 }
 
-/** Delete all but the most recent INGEST_RUNS_KEEP rows from ingest_runs. */
 async function pruneIngestRuns(env: Env): Promise<void> {
   await env.DB.prepare(
     `DELETE FROM ingest_runs WHERE id NOT IN (
