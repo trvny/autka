@@ -21,7 +21,7 @@ jobs:
   dependency-submission:
     name: Submit dependency graph
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: write        # required to submit the dependency graph
     steps:
